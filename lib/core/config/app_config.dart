@@ -9,12 +9,20 @@ class AppConfig {
     required this.apiBibleIds,
   });
 
+  /// No keys. Repositories stay on the bundled sample catalog.
+  const AppConfig.offline()
+    : supabaseUrl = '',
+      supabaseAnonKey = '',
+      esvApiKey = '',
+      apiBibleKey = '',
+      apiBibleIds = const {};
+
   factory AppConfig.fromEnvironment() {
     return AppConfig(
-      supabaseUrl: const String.fromEnvironment('SUPABASE_URL'),
-      supabaseAnonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
-      esvApiKey: const String.fromEnvironment('ESV_API_KEY'),
-      apiBibleKey: const String.fromEnvironment('API_BIBLE_KEY'),
+      supabaseUrl: const String.fromEnvironment('SUPABASE_URL').trim(),
+      supabaseAnonKey: const String.fromEnvironment('SUPABASE_ANON_KEY').trim(),
+      esvApiKey: const String.fromEnvironment('ESV_API_KEY').trim(),
+      apiBibleKey: const String.fromEnvironment('API_BIBLE_KEY').trim(),
       apiBibleIds: {
         BibleVersion.niv: const String.fromEnvironment('API_BIBLE_ID_NIV'),
         BibleVersion.nlt: const String.fromEnvironment('API_BIBLE_ID_NLT'),
@@ -31,7 +39,18 @@ class AppConfig {
   final String apiBibleKey;
   final Map<BibleVersion, String> apiBibleIds;
 
-  bool get useSupabase => supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+  /// True only for an http(s) URL with a host and a non-empty anon key.
+  ///
+  /// Empty defines, whitespace, and a bare host never reach Supabase
+  /// initialization. That call runs before the first Flutter frame; a throw
+  /// there leaves the Android launch window up.
+  bool get useSupabase {
+    if (supabaseAnonKey.trim().isEmpty) return false;
+    final uri = Uri.tryParse(supabaseUrl.trim());
+    if (uri == null || uri.host.isEmpty) return false;
+    final scheme = uri.scheme.toLowerCase();
+    return scheme == 'https' || scheme == 'http';
+  }
 
   String bibleIdFor(BibleVersion version) => apiBibleIds[version] ?? '';
 }

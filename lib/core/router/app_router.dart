@@ -11,9 +11,8 @@ import '../../features/settings/sign_in_screen.dart';
 import '../../features/shell/app_shell.dart';
 import '../../features/today/today_screen.dart';
 
-final rootNavigatorKey = GlobalKey<NavigatorState>();
-
 GoRouter buildRouter() {
+  final rootNavigatorKey = GlobalKey<NavigatorState>();
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/',
@@ -23,7 +22,10 @@ GoRouter buildRouter() {
         branches: [
           StatefulShellBranch(
             routes: [
-              GoRoute(path: '/', builder: (context, state) => const TodayScreen()),
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const TodayScreen(),
+              ),
             ],
           ),
           StatefulShellBranch(

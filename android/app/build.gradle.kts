@@ -35,6 +35,10 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // R8 is off. There are no keep rules for the notification plugin
+            // or Supabase, and shrinking is not required to draw the UI.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

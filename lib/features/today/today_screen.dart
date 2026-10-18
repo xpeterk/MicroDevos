@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
+import '../../core/format/edition_date_format.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/models/devo.dart';
@@ -41,7 +41,9 @@ class _TodayBody extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
           Text(
-            edition == null ? 'No edition yet' : DateFormat('EEEE').format(edition),
+            edition == null
+                ? 'No edition yet'
+                : formatEditionDate(edition, 'EEEE'),
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
               fontFamily: AppTheme.sans,
               color: scheme.primary,
@@ -52,15 +54,14 @@ class _TodayBody extends ConsumerWidget {
           Text(
             edition == null
                 ? 'The archive is empty'
-                : DateFormat('MMMM d, y').format(edition),
+                : formatEditionDate(edition, 'MMMM d, y'),
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 8),
           Text(
             'Eight short devotions for the day.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge
+                ?.copyWith(color: scheme.onSurfaceVariant),
           ),
           if (snapshot.dates.length > 1 && edition != null) ...[
             const SizedBox(height: 16),
@@ -74,8 +75,7 @@ class _TodayBody extends ConsumerWidget {
           if (snapshot.devos.isEmpty)
             const StatusMessage(
               title: 'Nothing published for this date',
-              body:
-                  'Weekday editions carry the eight devotions. Choose another day, or open the archive.',
+              body: 'Weekday editions carry the eight devotions. Choose another day, or open the archive.',
             )
           else
             for (final devo in snapshot.devos) ...[
@@ -99,7 +99,7 @@ class _FallbackNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final label = DateFormat('EEEE, MMMM d').format(edition);
+    final label = formatEditionDate(edition, 'EEEE, MMMM d');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -109,10 +109,8 @@ class _FallbackNote extends StatelessWidget {
       ),
       child: Text(
         'Showing $label, the latest edition on or before today. New sets are published on weekdays.',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          fontFamily: AppTheme.sans,
-          color: scheme.onSurface,
-        ),
+        style: Theme.of(context).textTheme.bodyMedium
+            ?.copyWith(fontFamily: AppTheme.sans, color: scheme.onSurface),
       ),
     );
   }
@@ -133,14 +131,18 @@ class _EditionStepper extends ConsumerWidget {
       children: [
         OutlinedButton(
           onPressed: hasOlder
-              ? () => ref.read(selectedEditionProvider.notifier).select(dates[index + 1])
+              ? () => ref
+                    .read(selectedEditionProvider.notifier)
+                    .select(dates[index + 1])
               : null,
           child: const Text('Earlier'),
         ),
         const Spacer(),
         OutlinedButton(
           onPressed: hasNewer
-              ? () => ref.read(selectedEditionProvider.notifier).select(dates[index - 1])
+              ? () => ref
+                    .read(selectedEditionProvider.notifier)
+                    .select(dates[index - 1])
               : null,
           child: const Text('Later'),
         ),

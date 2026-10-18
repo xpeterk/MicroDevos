@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/providers.dart';
+import 'core/startup.dart';
 import 'data/bible/bundled_kjv_verse_provider.dart';
 import 'data/sample/sample_catalog.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  await prepareFramework();
   final config = AppConfig.fromEnvironment();
   final preferences = await SharedPreferences.getInstance();
   final devosJson = await rootBundle.loadString('assets/sample/devos.json');
@@ -19,15 +19,7 @@ Future<void> main() async {
   final kjvJson = await rootBundle.loadString('assets/bible/kjv.json');
   final catalog = SampleCatalog.parse(devosJson, tagsJson);
   final kjv = KjvBundle.parse(kjvJson);
-
-  SupabaseClient? client;
-  if (config.useSupabase) {
-    await Supabase.initialize(
-      url: config.supabaseUrl,
-      publishableKey: config.supabaseAnonKey,
-    );
-    client = Supabase.instance.client;
-  }
+  final client = await openSupabaseClient(config);
 
   runApp(
     ProviderScope(

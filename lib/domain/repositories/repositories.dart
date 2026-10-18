@@ -45,9 +45,15 @@ abstract class AuthRepository {
 
   Stream<AuthUser?> authState();
 
-  Future<void> signInWithEmail({required String email, required String password});
+  Future<void> signInWithEmail({
+    required String email,
+    required String password,
+  });
 
-  Future<void> signUpWithEmail({required String email, required String password});
+  Future<void> signUpWithEmail({
+    required String email,
+    required String password,
+  });
 
   Future<void> signInWithGoogle();
 
@@ -64,7 +70,7 @@ class UnavailableAuthRepository implements AuthRepository {
   AuthUser? get currentUser => null;
 
   @override
-  Stream<AuthUser?> authState() => const Stream<AuthUser?>.empty();
+  Stream<AuthUser?> authState() => Stream<AuthUser?>.value(null);
 
   @override
   Future<void> signInWithEmail({

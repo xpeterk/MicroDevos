@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
+import '../../core/format/edition_date_format.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/models/devo.dart';
@@ -24,7 +24,10 @@ class ArchiveScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Archive', style: Theme.of(context).textTheme.headlineMedium),
+                Text(
+                  'Archive',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
                 const SizedBox(height: 6),
                 Text(
                   'Search the devotions, or browse by edition date.',
@@ -45,7 +48,10 @@ class ArchiveScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 dates.when(
                   loading: () => const SizedBox(height: 40),
-                  error: (_, _) => const SizedBox.shrink(),
+                  error: (_, _) => const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Edition dates could not be loaded.'),
+                  ),
                   data: (editionDates) => SizedBox(
                     height: 40,
                     child: ListView(
@@ -56,18 +62,22 @@ class ArchiveScreen extends ConsumerWidget {
                           child: ChoiceChip(
                             label: const Text('All dates'),
                             selected: query.date == null,
-                            onSelected: (_) =>
-                                ref.read(archiveQueryProvider.notifier).setDate(null),
+                            onSelected: (_) => ref
+                                .read(archiveQueryProvider.notifier)
+                                .setDate(null),
                           ),
                         ),
                         for (final date in editionDates)
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: ChoiceChip(
-                              label: Text(DateFormat('MMM d').format(date)),
-                              selected: query.date != null && isSameDate(query.date!, date),
-                              onSelected: (_) =>
-                                  ref.read(archiveQueryProvider.notifier).setDate(date),
+                              label: Text(formatEditionDate(date, 'MMM d')),
+                              selected:
+                                  query.date != null &&
+                                  isSameDate(query.date!, date),
+                              onSelected: (_) => ref
+                                  .read(archiveQueryProvider.notifier)
+                                  .setDate(date),
                             ),
                           ),
                       ],
