@@ -81,7 +81,23 @@ flutter run -d android
 flutter build apk --debug
 ```
 
-The debug APK is `build/app/outputs/flutter-apk/app-debug.apk`.
+The debug APK is `build/app/outputs/flutter-apk/app-debug.apk`. A smaller installable build, signed with the debug key until a release keystore exists:
+
+```bash
+flutter build apk --release
+```
+
+That file is `build/app/outputs/flutter-apk/app-release.apk`.
+
+### Install the APK on an Android phone
+
+Copy `app-release.apk` to the phone and open it, or install over USB:
+
+```bash
+adb install -r build/app/outputs/flutter-apk/app-release.apk
+```
+
+On the phone, allow installs from the app that opens the file (Files, Chrome, or Drive): Settings, then Apps or Security, then the permission for unknown or external apps. The installed app opens on the bundled sample devotions and does not need keys.
 
 iOS, on a Mac:
 
