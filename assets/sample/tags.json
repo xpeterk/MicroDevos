@@ -1,0 +1,82 @@
+[
+  {
+    "slug": "courage",
+    "label": "Courage",
+    "category": "emotion"
+  },
+  {
+    "slug": "anxiety",
+    "label": "Anxiety",
+    "category": "emotion"
+  },
+  {
+    "slug": "fear",
+    "label": "Fear",
+    "category": "emotion"
+  },
+  {
+    "slug": "hope",
+    "label": "Hope",
+    "category": "emotion"
+  },
+  {
+    "slug": "peace",
+    "label": "Peace",
+    "category": "emotion"
+  },
+  {
+    "slug": "gratitude",
+    "label": "Gratitude",
+    "category": "emotion"
+  },
+  {
+    "slug": "grief",
+    "label": "Grief",
+    "category": "emotion"
+  },
+  {
+    "slug": "trust",
+    "label": "Trust",
+    "category": "topic"
+  },
+  {
+    "slug": "prayer",
+    "label": "Prayer",
+    "category": "topic"
+  },
+  {
+    "slug": "rest",
+    "label": "Rest",
+    "category": "topic"
+  },
+  {
+    "slug": "scripture",
+    "label": "Scripture",
+    "category": "topic"
+  },
+  {
+    "slug": "waiting",
+    "label": "Waiting",
+    "category": "topic"
+  },
+  {
+    "slug": "perseverance",
+    "label": "Perseverance",
+    "category": "topic"
+  },
+  {
+    "slug": "identity",
+    "label": "Identity",
+    "category": "topic"
+  },
+  {
+    "slug": "work",
+    "label": "Work",
+    "category": "life_situation"
+  },
+  {
+    "slug": "family",
+    "label": "Family",
+    "category": "life_situation"
+  }
+]

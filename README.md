@@ -1,3 +1,207 @@
-# New project
+# Micro Devos
 
-This project was created by a Cursor cloud agent.
+Daily Christian micro-devotionals. Each weekday edition holds eight short devotions: a title, a one-line hook ("At a Glance"), a short reflection, a takeaway, Scripture quotes, and a featured verse.
+
+This repository is **milestone 1**: the app foundation, the data model, sample content that runs with no keys, and the publishing path from Notion into Supabase. Later milestones add the premium generator, recommendations, the home-screen widget, and subscriptions.
+
+## Architecture
+
+```
+lib/
+  core/         config, theme, router, Riverpod providers, local reminders
+  domain/       models, repository interfaces, Notion parser, verse lookup
+  data/
+    sample/     bundled JSON catalog and local favorites / preferences
+    supabase/   repository implementations used when keys are present
+    bible/      KJV bundle, Crossway ESV client, API.Bible client
+  features/     today, devo, archive, favorites, settings, for_you, create
+  shared/       reading layout widgets
+assets/         sample devos, tags, public-domain KJV verses, Source Serif / Source Sans
+supabase/       SQL migrations and the ingest-devos edge function
+tools/notion-import/   Notion "Micro Devos Cards" importer
+```
+
+The UI is Flutter with Riverpod and go_router, organized by feature. Reading text uses Source Serif 4; interface text uses Source Sans 3. Light and dark themes share a warm paper / olive palette. The featured verse sits in a shaded card.
+
+Screens:
+
+| Route | What it does |
+| --- | --- |
+| `/` | Today: the eight devotions for the edition date. Weekends open the latest weekday edition. |
+| `/devo/:id` | Full devotion, system share sheet, favorite toggle. |
+| `/archive` | Search plus date chips. |
+| `/favorites` | Saved devotions. Stored on the device until the reader signs in. |
+| `/settings` | Theme, Bible versions, tags, daily reminder time, account. |
+| `/for-you` | Stub for recommendations (milestone 3). |
+| `/create` | Stub for the premium generator (milestone 2). |
+
+There is no author byline on any screen or in share text.
+
+### Data
+
+Repository interfaces live in `lib/domain/repositories`. `AppConfig` chooses the implementation:
+
+- **Sample mode** (default). No `--dart-define` values. Sixteen original sample devotions and the KJV verses they quote ship in `assets/`. Favorites, Bible versions, tags, and the reminder time stay in `SharedPreferences`.
+- **Supabase mode.** Set `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Published devotions come from Postgres. Favorites and preferences sync for a signed-in user. Email, Google, and Apple sign-in are wired and stay optional; sample mode never asks for an account.
+
+`VerseProvider` resolves the featured verse in the reader's chosen translation. The reading version is stored first in `bible_versions`. KJV is bundled and works offline. ESV calls the Crossway passage API when `ESV_API_KEY` is set. NIV, NLT, NKJV, CSB, and NASB call API.Bible when `API_BIBLE_KEY` and the matching Bible id are set. An unconfigured translation falls through to the next enabled version, then to the devotion's stored verse text.
+
+### Backend
+
+`supabase/migrations/20261018000001_init.sql` creates:
+
+- `devos`, `tags`, `devo_tags`
+- `profiles` (optional location and `location_consent_at`)
+- `preferences` (`age_range`, `sex`, `life_situations[]`, `bible_versions[]`, `tags[]`, `notify_time`, plus widget and embedding columns reserved for later milestones)
+- `generated_devos`, `favorites`, `subscriptions`, `ai_usage`
+- `verse_texts`, `news_cache`
+
+`devos.embedding` and `generated_devos.embedding` are `extensions.vector(1536)` with cosine HNSW indexes. Row-level security is enabled on every table. Readers can select published devotions, tags, and their own profile, preferences, favorites, subscription, and usage rows. `verse_texts` and `news_cache` have no client write policies; inserts and updates are revoked from `anon` and `authenticated`, so only the service role can write them. The same revoke covers catalog tables the client should not mutate (`devos`, `tags`, `devo_tags`, `generated_devos`, `subscriptions`, `ai_usage`).
+
+The `ingest-devos` edge function accepts a POST of one edition (1–8 devotions) and upserts on `(edition_date, position)`. Callers send the shared secret in `x-ingest-secret`. JWT verification is off for that function (`supabase/config.toml`).
+
+A new auth user gets a `profiles` row and a `preferences` row from a trigger.
+
+## Setup
+
+Requirements: Flutter 3.47 or newer (Dart 3.13), and the Android SDK if you are building an APK. iOS builds need Xcode on macOS.
+
+```bash
+flutter pub get
+flutter run
+```
+
+Sample mode needs no keys. The app opens Today on the latest bundled weekday edition.
+
+To point the app at Supabase and optional Bible APIs:
+
+```bash
+flutter run \
+  --dart-define=SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=YOUR_ANON_KEY \
+  --dart-define=ESV_API_KEY=YOUR_ESV_KEY \
+  --dart-define=API_BIBLE_KEY=YOUR_API_BIBLE_KEY \
+  --dart-define=API_BIBLE_ID_NIV= \
+  --dart-define=API_BIBLE_ID_NLT= \
+  --dart-define=API_BIBLE_ID_NKJV= \
+  --dart-define=API_BIBLE_ID_CSB= \
+  --dart-define=API_BIBLE_ID_NASB=
+```
+
+Apply the migration with the Supabase CLI (`supabase db push`) or by running the SQL file in the SQL editor. Set the edge function secret `INGEST_SHARED_SECRET` in the project, then deploy:
+
+```bash
+supabase functions deploy ingest-devos --no-verify-jwt
+```
+
+Example body:
+
+```json
+{
+  "edition_date": "2026-10-16",
+  "edition_url": "https://microdevos.substack.com/p/example",
+  "devos": [
+    {
+      "position": 1,
+      "title": "A Refuge That Does Not Move",
+      "hook": "The refuge is a person, and he is already here.",
+      "body_md": "Reflection markdown.",
+      "takeaway": "Name the trouble, then say the verse once, slowly.",
+      "verse_ref": "Psalm 46:1",
+      "verse_text": "God is our refuge and strength...",
+      "scriptures": [{ "reference": "Psalm 46:1", "text": "..." }],
+      "tags": ["courage", "fear"],
+      "status": "published"
+    }
+  ]
+}
+```
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/ingest-devos" \
+  -H "content-type: application/json" \
+  -H "x-ingest-secret: $INGEST_SHARED_SECRET" \
+  -d @edition.json
+```
+
+OAuth redirect used by the app: `com.microdevos.microdevos://login-callback`. Enable Email, Google, and Apple in the Supabase Auth dashboard and add that redirect URL before sign-in will succeed.
+
+### Daily reminder
+
+Settings can turn on a local notification at a chosen time (default 7:30, off until the reader opts in). The schedule uses inexact alarms and is stored on the device. Signing in copies the time into `preferences.notify_time`.
+
+## Notion import
+
+`tools/notion-import` reads the Notion data source **Micro Devos Cards** (Idea, Date, Status, Stars, URL). The page body supplies the hook, `## N · Title` sections, the takeaway, Scripture, the verse box, and the Substack edition link.
+
+Cards import only when they have an edition link on `microdevos.substack.com` or `microdevotionals.substack.com`. Status `Ideas` and `AI-Ideas`, and non-devotion pages such as `Prompt`, are skipped. Rows upsert on `(notion_page_id, position)`.
+
+```bash
+cd tools/notion-import
+npm install
+export NOTION_TOKEN=secret_...
+export SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=...
+# optional; defaults to the Micro Devos Cards data source
+export NOTION_DATA_SOURCE_ID=515d5d5d-b81b-4751-a025-d2c0734e3f60
+
+npm run import -- --dry-run --out out/devos.json --limit 5
+npm run import
+npm test
+npm run typecheck
+```
+
+`--dry-run` writes `{ imported, skipped }` JSON and does not touch Supabase. The same parser rules are covered by Dart tests in `test/notion_parser_test.dart` and by `src/parse.test.ts`.
+
+## Environment variables
+
+| Name | Used by |
+| --- | --- |
+| `SUPABASE_URL` | App (`--dart-define`), importer, ingest deploy |
+| `SUPABASE_ANON_KEY` | App (`--dart-define`). Passed to Supabase as the publishable key. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Notion importer only. Never ship this in the app. |
+| `NOTION_TOKEN` | Notion importer |
+| `NOTION_DATA_SOURCE_ID` | Importer. Defaults to Micro Devos Cards. |
+| `INGEST_SHARED_SECRET` | `ingest-devos` edge function |
+| `ESV_API_KEY` | App (`--dart-define`), Crossway ESV |
+| `API_BIBLE_KEY` | App (`--dart-define`) |
+| `API_BIBLE_ID_NIV` `API_BIBLE_ID_NLT` `API_BIBLE_ID_NKJV` `API_BIBLE_ID_CSB` `API_BIBLE_ID_NASB` | App (`--dart-define`) |
+
+Copy `.env.example` when you want a local checklist. `.env` is gitignored.
+
+## Tests
+
+```bash
+flutter analyze
+flutter test
+```
+
+`flutter test` covers the Notion body parser, the sample repository (search, dates, share text, favorites, preferences), Bible-version selection, and KJV lookup. The importer's TypeScript parser is tested with `npm test` inside `tools/notion-import`.
+
+Debug Android APK:
+
+```bash
+flutter build apk --debug
+```
+
+The APK is written to `build/app/outputs/flutter-apk/app-debug.apk`. iOS is part of the project (`ios/`) with the same URL scheme and display name. Compile it on macOS with `flutter build ios --no-codesign`.
+
+## Roadmap
+
+1. **Foundation** (this milestone). App shell, sample and Supabase data, verse providers, Notion import, ingest function, local reminder.
+2. **Premium generator.** A Create flow that drafts a devotion from a short prompt, with a server-side Google News RSS edge function for local news when the reader has opted into location. Usage is recorded in `ai_usage` with cost caps before a model call proceeds.
+3. **Recommendations.** "For You" ranks published and generated devotions with the pgvector embeddings already on `devos` and `generated_devos`, using the reader's tags and life situations.
+4. **Home-screen widget.** `home_widget`, with Android Glance and iOS WidgetKit, showing the featured verse or the next unread devotion.
+5. **Subscriptions.** RevenueCat products mapped onto the `subscriptions` table, gating Create and the widget.
+6. **Store prep.** Store listings, privacy nutrition labels, notification copy review, Bible-text license confirmation, and release builds for Play and the App Store.
+
+## Owner keys and decisions still open
+
+The app runs on sample data without any of these. Production needs:
+
+- A Supabase project (URL, anon key, service role) and the Auth providers above.
+- A Notion integration token shared with the Micro Devos Cards database.
+- `INGEST_SHARED_SECRET` for the daily publishing pipeline.
+- An ESV API key from Crossway, and confirmation that the license covers a distributed app.
+- An API.Bible key plus a Bible id for each of NIV, NLT, NKJV, CSB, and NASB. NIV in particular needs the publisher's approval.
+- Product decisions deferred to later milestones: price, theology and safety checks for generated text, the public store name, and which translations ship on day one.

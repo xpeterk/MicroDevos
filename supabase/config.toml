@@ -1,0 +1,5 @@
+# Milestone 1 only declares the ingest function. The daily pipeline posts
+# with a shared secret, so the gateway must not require a user JWT.
+
+[functions.ingest-devos]
+verify_jwt = false
