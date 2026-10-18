@@ -1,13 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
-import { NotionClient, readDate, readStars, readStatus, readTitle, readUrl } from "./notion.js";
-import { decide, parseDevoMarkdown } from "./parse.js";
-import type { ParsedDevo } from "./types.js";
+import { DisabledEmbeddingProvider, KeywordTaggingProvider } from "./enrichment.js";
+import { loadFixtureCards } from "./fixture.js";
+import { NotionClient, readStatus, readTitle } from "./notion.js";
+import { decide } from "./parse.js";
+import { UPSERT_ON_CONFLICT, planImport, toUpsertRows, type SourceCard } from "./pipeline.js";
 
 const DEFAULT_DATA_SOURCE = "515d5d5d-b81b-4751-a025-d2c0734e3f60";
-
-type Skip = { id: string; title: string; reason: string };
 
 async function main() {
   await loadEnv(path.resolve(".env"));
@@ -16,62 +16,27 @@ async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
   const outFlag = args.indexOf("--out");
-  const outPath = outFlag >= 0 ? args[outFlag + 1] : "tools/notion-import/out/devos.json";
+  const outPath = outFlag >= 0 ? args[outFlag + 1] : "out/devos.json";
   const limitFlag = args.indexOf("--limit");
   const limit = limitFlag >= 0 ? Number(args[limitFlag + 1]) : Infinity;
+  const fixtureFlag = args.indexOf("--fixture");
+  const fixturePath = fixtureFlag >= 0 ? args[fixtureFlag + 1] : undefined;
 
-  const token = process.env.NOTION_TOKEN;
-  if (!token) throw new Error("NOTION_TOKEN is required");
-  const dataSourceId = process.env.NOTION_DATA_SOURCE_ID || DEFAULT_DATA_SOURCE;
-  const notion = new NotionClient(token, dataSourceId);
-  const pages = await notion.queryPages();
+  const cards = fixturePath
+    ? await loadFixtureCards(path.resolve(fixturePath))
+    : await cardsFromNotion(limit);
 
-  const imported: ParsedDevo[] = [];
-  const skipped: Skip[] = [];
-  let seen = 0;
+  const plan = await planImport(cards, {
+    tagging: new KeywordTaggingProvider(),
+    embedding: new DisabledEmbeddingProvider(),
+  });
 
-  for (const page of pages) {
-    if (seen >= limit) break;
-    const title = readTitle(page.properties);
-    const status = readStatus(page.properties);
-    const normalized = (status ?? "").toLowerCase();
-    if (normalized === "ideas" || normalized === "ai-ideas" || title.trim().toLowerCase() === "prompt") {
-      skipped.push({
-        id: page.id,
-        title,
-        reason: normalized === "ideas" || normalized === "ai-ideas" ? `status is ${status}` : "non-devo page",
-      });
-      continue;
-    }
-
-    const markdown = await notion.pageMarkdown(page.id);
-    const decision = decide({ status, title, markdown });
-    if (!decision.shouldImport) {
-      skipped.push({ id: page.id, title, reason: decision.reason });
-      continue;
-    }
-    const devos = parseDevoMarkdown(markdown, {
-      title,
-      status,
-      editionDate: readDate(page.properties),
-      stars: readStars(page.properties),
-      sourceUrl: readUrl(page.properties),
-      notionPageId: page.id,
-    });
-    if (devos.length === 0) {
-      skipped.push({ id: page.id, title, reason: "parser found no devotions" });
-      continue;
-    }
-    imported.push(...devos);
-    seen += 1;
-    await new Promise((resolve) => setTimeout(resolve, 350));
-  }
-
-  const payload = { imported, skipped };
   if (dryRun) {
-    await mkdir(path.dirname(outPath), { recursive: true });
-    await writeFile(outPath, `${JSON.stringify(payload, null, 2)}\n`);
-    console.log(`Dry run: ${imported.length} devotions, ${skipped.length} skipped, wrote ${outPath}`);
+    await mkdir(path.dirname(path.resolve(outPath)), { recursive: true });
+    await writeFile(outPath, `${JSON.stringify(plan, null, 2)}\n`);
+    console.log(
+      `Dry run: ${plan.imported.length} devotions, ${plan.skipped.length} skipped, wrote ${outPath}`,
+    );
     return;
   }
 
@@ -81,28 +46,67 @@ async function main() {
   const supabase = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const rows = imported.map((devo) => ({
-    title: devo.title,
-    hook: devo.hook,
-    body_md: devo.body_md,
-    takeaway: devo.takeaway,
-    verse_text: devo.verse_text,
-    verse_ref: devo.verse_ref,
-    scriptures: devo.scriptures,
-    source_url: devo.source_url,
-    edition_date: devo.edition_date,
-    edition_url: devo.edition_url,
-    position: devo.position,
-    stars: devo.stars,
-    status: (devo.status ?? "published").toLowerCase(),
-    notion_page_id: devo.notion_page_id,
-    published_at: new Date().toISOString(),
-  }));
-  const { error } = await supabase.from("devos").upsert(rows, {
-    onConflict: "notion_page_id,position",
-  });
+  const rows = toUpsertRows(plan.imported);
+  const { data, error } = await supabase
+    .from("devos")
+    .upsert(rows, { onConflict: UPSERT_ON_CONFLICT })
+    .select("id, notion_page_id, position");
   if (error) throw error;
-  console.log(`Upserted ${rows.length} devotions. Skipped ${skipped.length}.`);
+
+  const saved = new Map(
+    (data ?? []).map((row) => [`${row.notion_page_id}:${row.position}`, row.id as string]),
+  );
+  const { data: tagRows, error: tagError } = await supabase.from("tags").select("id, slug");
+  if (tagError) throw tagError;
+  const tagIds = new Map((tagRows ?? []).map((tag) => [tag.slug as string, tag.id as string]));
+  const links: { devo_id: string; tag_id: string }[] = [];
+  for (const devo of plan.imported) {
+    const devoId = saved.get(`${devo.notion_page_id}:${devo.position}`);
+    if (!devoId) continue;
+    for (const slug of devo.tags) {
+      const tagId = tagIds.get(slug);
+      if (tagId) links.push({ devo_id: devoId, tag_id: tagId });
+    }
+  }
+  if (links.length > 0) {
+    const { error: linkError } = await supabase
+      .from("devo_tags")
+      .upsert(links, { onConflict: "devo_id,tag_id" });
+    if (linkError) throw linkError;
+  }
+  console.log(
+    `Upserted ${rows.length} devotions on ${UPSERT_ON_CONFLICT}. Skipped ${plan.skipped.length}.`,
+  );
+}
+
+async function cardsFromNotion(limit: number): Promise<SourceCard[]> {
+  const token = process.env.NOTION_TOKEN;
+  if (!token) {
+    throw new Error(
+      "NOTION_TOKEN is required to read Notion. For a local dry run with no token: npm run import -- --dry-run --fixture fixtures/sample-cards.json",
+    );
+  }
+  const dataSourceId = process.env.NOTION_DATA_SOURCE_ID || DEFAULT_DATA_SOURCE;
+  const notion = new NotionClient(token, dataSourceId);
+  const pages = await notion.queryPages();
+  const cards: SourceCard[] = [];
+  let imported = 0;
+
+  for (const page of pages) {
+    if (imported >= limit) break;
+    const title = readTitle(page.properties);
+    const status = readStatus(page.properties);
+    const normalized = (status ?? "").toLowerCase();
+    if (normalized === "ideas" || normalized === "ai-ideas" || title.trim().toLowerCase() === "prompt") {
+      cards.push({ id: page.id, properties: page.properties, markdown: "" });
+      continue;
+    }
+    const markdown = await notion.pageMarkdown(page.id);
+    cards.push({ id: page.id, properties: page.properties, markdown });
+    if (decide({ status, title, markdown }).shouldImport) imported += 1;
+    await new Promise((resolve) => setTimeout(resolve, 350));
+  }
+  return cards;
 }
 
 async function loadEnv(file: string) {

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "import": "tsx src/index.ts",
-    "test": "tsx --test src/parse.test.ts",
+    "test": "tsx --test src/parse.test.ts src/pipeline.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,0 +1,53 @@
+{
+  "cards": [
+    {
+      "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+      "properties": {
+        "Idea": {
+          "title": [{ "plain_text": "A Refuge That Does Not Move" }]
+        },
+        "Date": { "date": { "start": "2026-10-16" } },
+        "Status": { "select": { "name": "Archive" } },
+        "Stars": { "select": { "name": "★★★" } },
+        "URL": { "url": "https://example.com/refuge" }
+      },
+      "markdownFile": "verse-box.md"
+    },
+    {
+      "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2",
+      "properties": {
+        "Idea": { "title": [{ "plain_text": "An idea still on the table" }] },
+        "Date": { "date": { "start": "2026-10-16" } },
+        "Status": { "select": { "name": "Ideas" } },
+        "Stars": { "select": { "name": "★" } },
+        "URL": { "url": "https://example.com/idea" }
+      },
+      "markdownFile": "verse-box.md"
+    },
+    {
+      "id": "cccccccc-cccc-4ccc-8ccc-ccccccccccc3",
+      "properties": {
+        "Idea": { "title": [{ "plain_text": "Generated later" }] },
+        "Status": { "select": { "name": "AI-Ideas" } },
+        "Stars": { "select": { "name": "★★" } }
+      },
+      "markdownFile": "verse-box.md"
+    },
+    {
+      "id": "dddddddd-dddd-4ddd-8ddd-ddddddddddd4",
+      "properties": {
+        "Idea": { "title": [{ "plain_text": "Half written" }] },
+        "Status": { "select": { "name": "Unread" } }
+      },
+      "markdown": "## 2 · Half written\n\nA reflection with no edition link yet.\n"
+    },
+    {
+      "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5",
+      "properties": {
+        "Idea": { "title": [{ "plain_text": "Prompt" }] },
+        "Status": { "select": { "name": "Archive" } }
+      },
+      "markdownFile": "verse-box.md"
+    }
+  ]
+}

@@ -1,7 +1,14 @@
 -- Micro Devos foundation.
--- Embeddings stay null until a later job fills them.
+-- Embeddings stay null until a later job fills them. Nothing in this
+-- migration calls a model.
 -- Service role bypasses row-level security, so tables with no write policy
 -- are writable by the service role only.
+--
+-- Supabase already has the extensions schema, auth.users, and the
+-- anon / authenticated / service_role roles. On plain Postgres, run
+-- supabase/tests/plain_postgres_bootstrap.sql before this file.
+
+create schema if not exists extensions;
 
 create extension if not exists vector with schema extensions;
 
@@ -282,6 +289,14 @@ create policy "verse texts are readable" on public.verse_texts
 
 create policy "news cache is readable" on public.news_cache
   for select to authenticated using (true);
+
+grant usage on schema public, extensions to anon, authenticated, service_role;
+grant select on all tables in schema public to anon, authenticated, service_role;
+grant select, insert, update, delete on public.profiles to authenticated;
+grant select, insert, update, delete on public.preferences to authenticated;
+grant select, insert, update, delete on public.favorites to authenticated;
+grant all privileges on all tables in schema public to service_role;
+grant usage, select on all sequences in schema public to authenticated, service_role;
 
 revoke insert, update, delete, truncate on public.verse_texts from anon, authenticated;
 revoke insert, update, delete, truncate on public.news_cache from anon, authenticated;

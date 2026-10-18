@@ -168,7 +168,7 @@ function verseFromCallout(callout: string) {
   let reference = "";
   const textLines: string[] = [];
   for (const line of lines) {
-    const value = plain(line);
+    const value = stripLeadingSymbols(plain(line));
     if (value.toUpperCase().startsWith("VERSE")) {
       const ref = verseRef(value);
       if (ref) reference = cleanRef(ref);

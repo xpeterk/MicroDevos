@@ -9,11 +9,12 @@ This repository is **milestone 1**: the app foundation, the data model, sample c
 ```
 lib/
   core/         config, theme, router, Riverpod providers, local reminders
-  domain/       models, repository interfaces, Notion parser, verse lookup
+  domain/       models, repository interfaces, Notion parser, verse lookup, enrichment interfaces
   data/
     sample/     bundled JSON catalog and local favorites / preferences
     supabase/   repository implementations used when keys are present
     bible/      KJV bundle, Crossway ESV client, API.Bible client
+    enrichment/ disabled embeddings, local keyword tags, and test fakes
   features/     today, devo, archive, favorites, settings, for_you, create
   shared/       reading layout widgets
 assets/         sample devos, tags, public-domain KJV verses, Source Serif / Source Sans
@@ -46,6 +47,8 @@ Repository interfaces live in `lib/domain/repositories`. `AppConfig` chooses the
 
 `VerseProvider` resolves the featured verse in the reader's chosen translation. The reading version is stored first in `bible_versions`. KJV is bundled and works offline. ESV calls the Crossway passage API when `ESV_API_KEY` is set. NIV, NLT, NKJV, CSB, and NASB call API.Bible when `API_BIBLE_KEY` and the matching Bible id are set. An unconfigured translation falls through to the next enabled version, then to the devotion's stored verse text.
 
+`EmbeddingProvider` and `TaggingProvider` are the only doors for vectors and suggested tags. The app binds a disabled embedding provider, so the embedding columns stay null and no model is called. Tag suggestions use a local whole-word match against the seeded catalog. Tests substitute `FakeEmbeddingProvider` and `FakeTaggingProvider`.
+
 ### Backend
 
 `supabase/migrations/20261018000001_init.sql` creates:
@@ -64,12 +67,30 @@ A new auth user gets a `profiles` row and a `preferences` row from a trigger.
 
 ## Setup
 
-Requirements: Flutter 3.47 or newer (Dart 3.13), and the Android SDK if you are building an APK. iOS builds need Xcode on macOS.
+Install the Flutter SDK (3.47 or newer, Dart 3.13) from the Flutter install page for your OS and add it to `PATH`. Android builds need the Android SDK (`ANDROID_HOME`) and an accepted SDK license. iOS builds need Xcode on macOS. Nothing in this repo depends on a particular editor.
 
 ```bash
 flutter pub get
 flutter run
 ```
+
+Android device or emulator:
+
+```bash
+flutter run -d android
+flutter build apk --debug
+```
+
+The debug APK is `build/app/outputs/flutter-apk/app-debug.apk`.
+
+iOS, on a Mac:
+
+```bash
+flutter run -d ios
+flutter build ios --no-codesign
+```
+
+The iOS project is `ios/`. The URL scheme is `com.microdevos.microdevos`, and the display name is Micro Devos.
 
 Sample mode needs no keys. The app opens Today on the latest bundled weekday edition.
 
@@ -88,7 +109,19 @@ flutter run \
   --dart-define=API_BIBLE_ID_NASB=
 ```
 
-Apply the migration with the Supabase CLI (`supabase db push`) or by running the SQL file in the SQL editor. Set the edge function secret `INGEST_SHARED_SECRET` in the project, then deploy:
+### Local database
+
+Hosted Supabase: run `supabase/migrations/20261018000001_init.sql` in the SQL editor, or `supabase db push` from the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started). `supabase start` then `supabase db reset` applies the same file on a local Supabase stack (that path needs Docker).
+
+Plain Postgres 16 with pgvector, from a new database:
+
+```bash
+bash supabase/tests/apply_and_test.sh
+```
+
+That script drops and creates `micro_devos_test`, applies `supabase/tests/plain_postgres_bootstrap.sql` (auth stub and roles that hosted Supabase already has), applies the migration, and checks row-level security: a reader sees only their own preferences and favorites, published devos are readable without signing in, and an upsert on `(notion_page_id, position)` updates the existing row. PostgreSQL has to be running first. Pass another database name as the first argument if you want one.
+
+Set the edge function secret `INGEST_SHARED_SECRET` in the project, then deploy:
 
 ```bash
 supabase functions deploy ingest-devos --no-verify-jwt
@@ -136,9 +169,17 @@ Settings can turn on a local notification at a chosen time (default 7:30, off un
 
 Cards import only when they have an edition link on `microdevos.substack.com` or `microdevotionals.substack.com`. Status `Ideas` and `AI-Ideas`, and non-devotion pages such as `Prompt`, are skipped. Rows upsert on `(notion_page_id, position)`.
 
+Dry run against the bundled card fixture. This needs no Notion token and does not touch Supabase:
+
 ```bash
 cd tools/notion-import
 npm install
+npm run import -- --dry-run --fixture fixtures/sample-cards.json --out out/devos.json
+```
+
+The fixture uses the Micro Devos Cards fields (Idea, Date, Status, Stars, URL) and a page body with an At a Glance hook, a `## N · Title` heading, a takeaway, a 📖 VERSE callout, and an Edition link. Ideas, AI-Ideas, Prompt pages, and cards without an Edition link are skipped. A live import upserts on `(notion_page_id, position)`.
+
+```bash
 export NOTION_TOKEN=secret_...
 export SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=...
@@ -151,7 +192,7 @@ npm test
 npm run typecheck
 ```
 
-`--dry-run` writes `{ imported, skipped }` JSON and does not touch Supabase. The same parser rules are covered by Dart tests in `test/notion_parser_test.dart` and by `src/parse.test.ts`.
+`--dry-run` writes `{ imported, skipped }` JSON and does not touch Supabase. The same parser rules are covered by Dart tests in `test/notion_parser_test.dart` and by `src/parse.test.ts` and `src/pipeline.test.ts`. Node 20 or newer is enough for the importer.
 
 ## Environment variables
 
@@ -162,12 +203,12 @@ npm run typecheck
 | `SUPABASE_SERVICE_ROLE_KEY` | Notion importer only. Never ship this in the app. |
 | `NOTION_TOKEN` | Notion importer |
 | `NOTION_DATA_SOURCE_ID` | Importer. Defaults to Micro Devos Cards. |
-| `INGEST_SHARED_SECRET` | `ingest-devos` edge function |
+| `INGEST_SHARED_SECRET` | `ingest-devos` edge function. Not used by the app. |
 | `ESV_API_KEY` | App (`--dart-define`), Crossway ESV |
 | `API_BIBLE_KEY` | App (`--dart-define`) |
 | `API_BIBLE_ID_NIV` `API_BIBLE_ID_NLT` `API_BIBLE_ID_NKJV` `API_BIBLE_ID_CSB` `API_BIBLE_ID_NASB` | App (`--dart-define`) |
 
-Copy `.env.example` when you want a local checklist. `.env` is gitignored.
+Copy `.env.example` when you want a local checklist. `.env` is gitignored. There is no embedding or model API key. The embedding provider stays disabled until a later milestone.
 
 ## Tests
 
@@ -176,7 +217,11 @@ flutter analyze
 flutter test
 ```
 
-`flutter test` covers the Notion body parser, the sample repository (search, dates, share text, favorites, preferences), Bible-version selection, and KJV lookup. The importer's TypeScript parser is tested with `npm test` inside `tools/notion-import`.
+`flutter test` covers the Notion body parser (including the verse-box card), the sample repository (search, dates, share text, favorites, preferences), Bible-version selection, KJV lookup, and the embedding and tagging providers. The importer's TypeScript parser and fixture import are tested with `npm test` inside `tools/notion-import`. Database checks:
+
+```bash
+bash supabase/tests/apply_and_test.sh
+```
 
 Debug Android APK:
 

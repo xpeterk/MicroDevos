@@ -6,12 +6,16 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 import '../data/bible/api_bible_verse_provider.dart';
 import '../data/bible/bundled_kjv_verse_provider.dart';
 import '../data/bible/esv_verse_provider.dart';
+import '../data/enrichment/disabled_embedding_provider.dart';
+import '../data/enrichment/keyword_tagging_provider.dart';
 import '../data/sample/local_preferences_repository.dart';
 import '../data/sample/sample_catalog.dart';
 import '../data/sample/sample_devo_repository.dart';
 import '../data/supabase/supabase_repositories.dart';
 import '../domain/bible/verse_provider.dart';
 import '../domain/edition_calendar.dart';
+import '../domain/enrichment/embedding_provider.dart';
+import '../domain/enrichment/tagging_provider.dart';
 import '../domain/models/bible_version.dart';
 import '../domain/models/devo.dart';
 import '../domain/models/user_preferences.dart';
@@ -41,6 +45,17 @@ final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
 final reminderServiceProvider = Provider<ReminderService>(
   (ref) => LocalReminderService(),
+);
+
+/// Disabled on purpose. A later milestone can override this with a configured
+/// provider. The default never calls a model.
+final embeddingProvider = Provider<EmbeddingProvider>(
+  (ref) => const DisabledEmbeddingProvider(),
+);
+
+/// Local whole-word match against the tag catalog. No model call.
+final taggingProvider = Provider<TaggingProvider>(
+  (ref) => const KeywordTaggingProvider(),
 );
 
 final devoRepositoryProvider = FutureProvider<DevoRepository>((ref) async {

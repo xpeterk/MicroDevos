@@ -131,6 +131,38 @@ void main() {
     );
   });
 
+  test('parses the verse-box card: position, takeaway, emoji callout, edition', () {
+    final markdown = File('tools/notion-import/fixtures/verse-box.md').readAsStringSync();
+    const meta = NotionCardMeta(
+      title: 'A Refuge That Does Not Move',
+      status: 'Archive',
+      editionDate: '2026-10-16',
+      stars: 3,
+      sourceUrl: 'https://example.com/refuge',
+      notionPageId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+    );
+    expect(
+      NotionDevoParser.decide(status: meta.status, title: meta.title, markdown: markdown)
+          .shouldImport,
+      isTrue,
+    );
+    final devo = NotionDevoParser.parse(markdown, meta: meta).single;
+    expect(devo.position, 3);
+    expect(devo.title, 'A Refuge That Does Not Move');
+    expect(devo.hook, 'A refuge is a person, and he is already here.');
+    expect(devo.takeaway, 'Today, say the verse once before the next hard conversation.');
+    expect(devo.verseRef, 'Psalm 46:1');
+    expect(devo.verseText, contains('refuge and strength'));
+    expect(devo.editionUrl, 'https://microdevos.substack.com/p/micro-devos-friday-october-16-2026');
+    expect(devo.editionDate, '2026-10-16');
+    expect(devo.stars, 3);
+    expect(devo.status, 'Archive');
+    expect(devo.notionPageId, meta.notionPageId);
+    expect(devo.sourceUrl, 'https://example.com/refuge');
+    expect(devo.bodyMd, isNot(contains('VERSE')));
+    expect(devo.bodyMd, isNot(contains('📖')));
+  });
+
   test('counts star labels', () {
     expect(NotionDevoParser.starsFromLabel('★'), 1);
     expect(NotionDevoParser.starsFromLabel('★★'), 2);

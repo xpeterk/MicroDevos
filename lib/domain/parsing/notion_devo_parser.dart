@@ -329,8 +329,9 @@ class NotionDevoParser {
     final textLines = <String>[];
     for (final line in lines) {
       final plain = _plain(line);
-      if (plain.toUpperCase().startsWith('VERSE')) {
-        final ref = _verseRef.firstMatch(plain);
+      final heading = _stripLeadingSymbols(plain);
+      if (heading.toUpperCase().startsWith('VERSE')) {
+        final ref = _verseRef.firstMatch(heading);
         if (ref != null) reference = _cleanRef(ref.group(1)!);
         continue;
       }
