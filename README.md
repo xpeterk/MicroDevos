@@ -119,7 +119,7 @@ Plain Postgres 16 with pgvector, from a new database:
 bash supabase/tests/apply_and_test.sh
 ```
 
-That script drops and creates `micro_devos_test`, applies `supabase/tests/plain_postgres_bootstrap.sql` (auth stub and roles that hosted Supabase already has), applies the migration, and checks row-level security: a reader sees only their own preferences and favorites, published devos are readable without signing in, and an upsert on `(notion_page_id, position)` updates the existing row. PostgreSQL has to be running first. Pass another database name as the first argument if you want one.
+That script drops and creates `micro_devos_test`, applies `supabase/tests/plain_postgres_bootstrap.sql` (auth stub and roles that hosted Supabase already has), applies the migration, and checks row-level security: a reader sees only their own preferences and favorites, published devos are readable without signing in, and an upsert on `(notion_page_id, position)` updates the existing row. It then runs the importer's `devo_tags` upsert against that database (the fixture card, written twice so the second write does not duplicate rows). PostgreSQL has to be running first. Pass another database name as the first argument if you want one.
 
 Set the edge function secret `INGEST_SHARED_SECRET` in the project, then deploy:
 

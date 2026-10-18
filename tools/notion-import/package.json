@@ -4,14 +4,17 @@
   "type": "module",
   "scripts": {
     "import": "tsx src/index.ts",
-    "test": "tsx --test src/parse.test.ts src/pipeline.test.ts",
+    "test": "tsx --test src/parse.test.ts src/pipeline.test.ts src/devo-tags.test.ts",
+    "write-tags": "tsx src/write-devo-tags-pg.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.4"
+    "@supabase/supabase-js": "^2.45.4",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

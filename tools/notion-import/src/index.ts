@@ -5,6 +5,7 @@ import { DisabledEmbeddingProvider, KeywordTaggingProvider } from "./enrichment.
 import { loadFixtureCards } from "./fixture.js";
 import { NotionClient, readStatus, readTitle } from "./notion.js";
 import { decide } from "./parse.js";
+import { buildDevoTagLinks, savedKey } from "./devo-tags.js";
 import { UPSERT_ON_CONFLICT, planImport, toUpsertRows, type SourceCard } from "./pipeline.js";
 
 const DEFAULT_DATA_SOURCE = "515d5d5d-b81b-4751-a025-d2c0734e3f60";
@@ -54,20 +55,12 @@ async function main() {
   if (error) throw error;
 
   const saved = new Map(
-    (data ?? []).map((row) => [`${row.notion_page_id}:${row.position}`, row.id as string]),
+    (data ?? []).map((row) => [savedKey(row.notion_page_id as string | null, row.position as number), row.id as string]),
   );
   const { data: tagRows, error: tagError } = await supabase.from("tags").select("id, slug");
   if (tagError) throw tagError;
   const tagIds = new Map((tagRows ?? []).map((tag) => [tag.slug as string, tag.id as string]));
-  const links: { devo_id: string; tag_id: string }[] = [];
-  for (const devo of plan.imported) {
-    const devoId = saved.get(`${devo.notion_page_id}:${devo.position}`);
-    if (!devoId) continue;
-    for (const slug of devo.tags) {
-      const tagId = tagIds.get(slug);
-      if (tagId) links.push({ devo_id: devoId, tag_id: tagId });
-    }
-  }
+  const links = buildDevoTagLinks(plan.imported, saved, tagIds);
   if (links.length > 0) {
     const { error: linkError } = await supabase
       .from("devo_tags")

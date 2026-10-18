@@ -31,7 +31,7 @@ begin
   ) values (
     'First title', 'A hook', 'A body', 'A step',
     'God is our refuge and strength.', 'Psalm 46:1',
-    '2026-10-16', 3, 'notion-page-rls', 'published'
+    '2026-09-30', 1, 'notion-page-rls', 'published'
   );
 
   insert into public.devos (
@@ -40,7 +40,7 @@ begin
   ) values (
     'Updated title', 'A hook', 'A body', 'A step',
     'God is our refuge and strength.', 'Psalm 46:1',
-    '2026-10-16', 3, 'notion-page-rls', 'published'
+    '2026-09-30', 1, 'notion-page-rls', 'published'
   )
   on conflict (notion_page_id, position) do update
     set title = excluded.title,

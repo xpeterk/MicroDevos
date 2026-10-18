@@ -21,3 +21,14 @@ sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/tests/p
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/migrations/20261018000001_init.sql"
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/tests/rls_test.sql"
 echo "Migrations applied from a clean database and RLS checks passed (${DB})."
+
+# The importer's devo_tags upsert, against this same database.
+sudo -u postgres env \
+  HOME=/tmp \
+  PATH="${PATH}" \
+  PGHOST=/var/run/postgresql \
+  PGUSER=postgres \
+  PGDATABASE="${DB}" \
+  "${ROOT}/tools/notion-import/node_modules/.bin/tsx" \
+  "${ROOT}/tools/notion-import/src/write-devo-tags-pg.ts"
+echo "Importer devo_tags upsert passed (${DB})."
