@@ -177,7 +177,7 @@ class FilterBar extends ConsumerWidget {
       height: 56,
       child: Row(
         children: [
-          const SizedBox(width: 12),
+          const SizedBox(width: 4),
           _ToggleChip(
             key: const Key('liked-filter'),
             icon: Icons.favorite_border,
@@ -185,7 +185,7 @@ class FilterBar extends ConsumerWidget {
             selected: filter.onlyLiked,
             onTap: () => ref.read(browseFilterProvider.notifier).toggleLiked(),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 2),
           _ToggleChip(
             key: const Key('notes-filter'),
             icon: Icons.sticky_note_2_outlined,
@@ -196,36 +196,33 @@ class FilterBar extends ConsumerWidget {
           Container(
             width: 1,
             height: 22,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
             color: scheme.outline,
           ),
           Expanded(
             child: SingleChildScrollView(
+              key: const Key('filter-chip-scroller'),
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
                   for (final slug in filter.tags)
                     Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: InputChip(
-                        key: Key('chip-$slug'),
-                        label: Text(labelOf(slug)),
+                      padding: const EdgeInsets.only(right: 4),
+                      child: _FilterTagChip(
+                        chipKey: Key('chip-$slug'),
+                        label: labelOf(slug),
                         onDeleted: () => ref
                             .read(browseFilterProvider.notifier)
                             .removeTag(slug),
-                        deleteIcon: Icon(
-                          Icons.close,
-                          key: Key('chip-delete-$slug'),
-                          size: 16,
-                        ),
+                        deleteKey: Key('chip-delete-$slug'),
                       ),
                     ),
                   for (final slug in filter.interests)
                     Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: InputChip(
-                        key: Key('interest-chip-$slug'),
-                        label: Text(labelOf(slug)),
+                      padding: const EdgeInsets.only(right: 4),
+                      child: _FilterTagChip(
+                        chipKey: Key('interest-chip-$slug'),
+                        label: labelOf(slug),
                         onDeleted: () => ref
                             .read(browseFilterProvider.notifier)
                             .removeInterest(slug),
@@ -233,9 +230,9 @@ class FilterBar extends ConsumerWidget {
                     ),
                   if (filter.ageRange != null)
                     Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: InputChip(
-                        label: Text(filter.ageRange!),
+                      padding: const EdgeInsets.only(right: 4),
+                      child: _FilterTagChip(
+                        label: filter.ageRange!,
                         onDeleted: () => ref
                             .read(browseFilterProvider.notifier)
                             .setAge(null),
@@ -248,6 +245,12 @@ class FilterBar extends ConsumerWidget {
           if (filter.hasChips)
             TextButton(
               key: const Key('clear-filters'),
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                minimumSize: const Size(0, 36),
+              ),
               onPressed: () =>
                   ref.read(browseFilterProvider.notifier).clearChips(),
               child: const Text('Clear'),
@@ -255,9 +258,14 @@ class FilterBar extends ConsumerWidget {
           IconButton(
             key: const Key('filter-button'),
             tooltip: 'Filters',
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 40, height: 40),
             onPressed: () => openFilterSheet(context),
             icon: Badge(
               isLabelVisible: filter.activeCount > 0,
+              backgroundColor: scheme.primary,
+              textColor: scheme.onPrimary,
               label: Text(
                 '${filter.activeCount}',
                 key: const Key('filter-count'),
@@ -265,6 +273,7 @@ class FilterBar extends ConsumerWidget {
               child: const Icon(Icons.tune),
             ),
           ),
+          const SizedBox(width: 2),
         ],
       ),
     );
@@ -288,12 +297,65 @@ class _ToggleChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return FilterChip(
-      avatar: Icon(icon, size: 16, color: scheme.primary),
-      label: Text(label),
-      selected: selected,
-      showCheckmark: false,
-      onSelected: (_) => onTap(),
+    final background = selected
+        ? scheme.primaryContainer
+        : scheme.surfaceContainerLowest;
+    return Material(
+      color: background,
+      shape: StadiumBorder(side: BorderSide(color: scheme.outline)),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const StadiumBorder(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(6, 6, 7, 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: scheme.primary),
+              const SizedBox(width: 3),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: AppTheme.sans,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterTagChip extends StatelessWidget {
+  const _FilterTagChip({
+    required this.label,
+    required this.onDeleted,
+    this.chipKey,
+    this.deleteKey,
+  });
+
+  final Key? chipKey;
+  final Key? deleteKey;
+  final String label;
+  final VoidCallback onDeleted;
+
+  @override
+  Widget build(BuildContext context) {
+    return InputChip(
+      key: chipKey,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.only(left: 4, right: 2),
+      labelPadding: const EdgeInsets.only(left: 2, right: 0),
+      label: Text(
+        label,
+        style: const TextStyle(fontFamily: AppTheme.sans, fontSize: 13),
+      ),
+      onDeleted: onDeleted,
+      deleteIcon: Icon(Icons.close, key: deleteKey, size: 16),
     );
   }
 }
@@ -354,7 +416,7 @@ class _FeedPostState extends ConsumerState<FeedPost> {
           if (note.section == section &&
               draft?.noteId != note.id &&
               (section == null ||
-                  (note.anchorText != null &&
+                  (isUsableAnchor(note.anchorText) &&
                       source.contains(note.anchorText!))))
             note,
       ];

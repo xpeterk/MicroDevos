@@ -194,20 +194,17 @@ class AnchorToolbar extends ConsumerWidget {
                   today?.devos.where((item) => item.id == devoId).firstOrNull ??
                   ref.read(devoByIdProvider(devoId)).asData?.value;
               if (devo == null) return;
-              final spot =
-                  locatePassage(devo, selection.text) ??
-                  locatePassage(
-                    devo,
-                    selection.text.split(RegExp(r'\s+')).first,
-                  );
+              final text = selection.text.trim();
+              if (!isUsableAnchor(text)) return;
+              final spot = locatePassage(devo, text);
               if (spot == null) return;
               ref
                   .read(noteDraftProvider.notifier)
                   .setAnchor(
-                    text: selection.text,
+                    text: text,
                     section: spot.section,
                     start: spot.start,
-                    end: spot.start + selection.text.length,
+                    end: spot.start + text.length,
                   );
               ref.read(passageSelectionProvider.notifier).clear();
             },

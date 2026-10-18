@@ -11,6 +11,7 @@ import 'package:micro_devos/features/today/today_screen.dart';
 
 import 'support/load_fonts.dart';
 import 'support/sample_app.dart';
+import 'support/select_sentence.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -99,16 +100,16 @@ void main() {
       'Sit quietly before I answer.',
     );
     await tester.pump();
-    final passage = find.textContaining('The refuge does not relocate');
-    await _show(tester, passage);
-    await tester.longPress(passage);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await selectSentence(tester, anchorSentence);
     expect(find.byKey(const Key('anchor-note')), findsOneWidget);
     await _capture(tester, 'build-N5');
 
     await tester.tap(find.byKey(const Key('anchor-note')));
     await tester.pump();
+    expect(
+      tester.widget<Text>(find.byKey(const Key('anchor-preview'))).data,
+      '“$anchorSentence”',
+    );
     await _capture(tester, 'build-N1');
 
     await tester.tap(find.byKey(const Key('note-done')));

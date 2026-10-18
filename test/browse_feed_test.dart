@@ -4,6 +4,7 @@ import 'package:micro_devos/core/startup.dart';
 
 import 'support/load_fonts.dart';
 import 'support/sample_app.dart';
+import 'support/select_sentence.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -61,8 +62,11 @@ void main() {
 
     await _tap(tester, const Key('hashtag-fri-1-courage'));
     expect(find.byKey(const Key('chip-courage')), findsOneWidget);
+    _expectChipWhole(tester, 'courage');
     await _tap(tester, const Key('hashtag-fri-1-trust'));
     expect(find.byKey(const Key('chip-trust')), findsOneWidget);
+    _expectChipWhole(tester, 'courage');
+    _expectChipWhole(tester, 'trust');
     expect(
       tester.widget<Text>(find.byKey(const Key('filter-count'))).data,
       '2',
@@ -95,16 +99,14 @@ void main() {
     );
     await tester.pump();
 
-    final passage = find.textContaining('The refuge does not relocate');
-    await Scrollable.ensureVisible(tester.element(passage), alignment: 0.4);
-    await tester.pump();
-    await tester.longPress(passage);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await selectSentence(tester, anchorSentence);
     expect(find.byKey(const Key('anchor-note')), findsOneWidget);
     await tester.tap(find.byKey(const Key('anchor-note')));
     await tester.pump();
-    expect(find.byKey(const Key('anchor-preview')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('anchor-preview'))).data,
+      '“$anchorSentence”',
+    );
 
     await tester.tap(find.byKey(const Key('note-done')));
     await tester.pump();
@@ -141,6 +143,22 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     expect(tester.takeException(), isNull);
   }, timeout: const Timeout(Duration(seconds: 60)));
+}
+
+void _expectChipWhole(WidgetTester tester, String slug) {
+  final chip = tester.getRect(find.byKey(Key('chip-$slug')));
+  final delete = tester.getRect(find.byKey(Key('chip-delete-$slug')));
+  final scroller = tester.getRect(
+    find.byKey(const Key('filter-chip-scroller')),
+  );
+  final clear = tester.getRect(find.byKey(const Key('clear-filters')));
+  final filter = tester.getRect(find.byKey(const Key('filter-button')));
+  expect(chip.left, greaterThanOrEqualTo(scroller.left - 0.5));
+  expect(chip.right, lessThanOrEqualTo(scroller.right + 0.5));
+  expect(delete.right, lessThanOrEqualTo(scroller.right + 0.5));
+  expect(delete.width, greaterThan(8));
+  expect(clear.left, greaterThanOrEqualTo(scroller.right - 0.5));
+  expect(clear.right, lessThanOrEqualTo(filter.left + 0.5));
 }
 
 Future<void> _doubleTap(WidgetTester tester, Key key) async {

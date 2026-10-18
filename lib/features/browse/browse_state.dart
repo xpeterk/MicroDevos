@@ -168,7 +168,7 @@ class NoteDraft {
   final int? anchorEnd;
   final String? section;
 
-  bool get hasAnchor => anchorText != null && anchorText!.trim().isNotEmpty;
+  bool get hasAnchor => isUsableAnchor(anchorText);
 
   NoteDraft copyWith({
     String? anchorText,
@@ -231,12 +231,13 @@ class NoteDraftController extends Notifier<NoteDraft?> {
     required int end,
   }) {
     final current = state;
-    if (current == null) return;
+    final trimmed = text.trim();
+    if (current == null || !isUsableAnchor(trimmed)) return;
     state = current.copyWith(
-      anchorText: text,
+      anchorText: trimmed,
       section: section,
       anchorStart: start,
-      anchorEnd: end,
+      anchorEnd: start + trimmed.length,
     );
   }
 }
@@ -258,7 +259,7 @@ class PassageSelectionController extends Notifier<PassageSelection?> {
 
   void setText(String? text) {
     final trimmed = text?.trim() ?? '';
-    if (trimmed.isEmpty) {
+    if (!isUsableAnchor(trimmed)) {
       state = null;
       return;
     }

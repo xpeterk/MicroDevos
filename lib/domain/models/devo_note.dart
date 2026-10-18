@@ -1,5 +1,13 @@
 import 'dart:math';
 
+/// A passage anchor has to contain a letter or digit. Whitespace and
+/// punctuation alone, such as a selected period, are ignored.
+bool isUsableAnchor(String? text) {
+  final trimmed = text?.trim() ?? '';
+  if (trimmed.isEmpty) return false;
+  return RegExp(r'[0-9A-Za-z]').hasMatch(trimmed);
+}
+
 class DevoNote {
   const DevoNote({
     required this.id,
@@ -30,7 +38,7 @@ class DevoNote {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  bool get hasAnchor => anchorText != null && anchorText!.trim().isNotEmpty;
+  bool get hasAnchor => isUsableAnchor(anchorText);
 
   String get targetId => devoId ?? generatedDevoId ?? '';
 

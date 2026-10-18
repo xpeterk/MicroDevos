@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/models/devo.dart';
+import '../../domain/models/devo_note.dart';
 
 class PassageSpot {
   const PassageSpot({required this.section, required this.start});
@@ -12,7 +13,7 @@ class PassageSpot {
 /// Finds [text] in the devotion. Body wins over a repeated word in the hook.
 PassageSpot? locatePassage(Devo devo, String text) {
   final needle = text.trim();
-  if (needle.isEmpty) return null;
+  if (!isUsableAnchor(needle)) return null;
   final sources = <String, String>{
     'body': devo.bodyMd,
     'scripture': devo.scriptures.map((quote) => quote.text).join('\n'),
@@ -36,7 +37,7 @@ List<InlineSpan> highlightSpans({
 }) {
   String? anchor;
   for (final item in anchors) {
-    if (item.trim().isNotEmpty && source.contains(item)) {
+    if (isUsableAnchor(item) && source.contains(item)) {
       anchor = item;
       break;
     }
