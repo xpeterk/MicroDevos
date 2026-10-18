@@ -8,9 +8,11 @@ import '../data/bible/bundled_kjv_verse_provider.dart';
 import '../data/bible/esv_verse_provider.dart';
 import '../data/enrichment/disabled_embedding_provider.dart';
 import '../data/enrichment/keyword_tagging_provider.dart';
+import '../data/sample/local_notes_repository.dart';
 import '../data/sample/local_preferences_repository.dart';
 import '../data/sample/sample_catalog.dart';
 import '../data/sample/sample_devo_repository.dart';
+import '../data/supabase/supabase_notes_repository.dart';
 import '../data/supabase/supabase_repositories.dart';
 import '../domain/bible/verse_provider.dart';
 import '../domain/edition_calendar.dart';
@@ -18,6 +20,7 @@ import '../domain/enrichment/embedding_provider.dart';
 import '../domain/enrichment/tagging_provider.dart';
 import '../domain/models/bible_version.dart';
 import '../domain/models/devo.dart';
+import '../domain/models/devo_note.dart';
 import '../domain/models/user_preferences.dart';
 import '../domain/repositories/repositories.dart';
 import 'config/app_config.dart';
@@ -203,7 +206,8 @@ final todayProvider = FutureProvider<TodaySnapshot>((ref) async {
   return TodaySnapshot(
     edition: edition,
     devos: devos,
-    isFallback: edition != null &&
+    isFallback:
+        edition != null &&
         editionIsFallback(
           today: today,
           edition: edition,
@@ -219,7 +223,11 @@ class ArchiveQuery {
   final String text;
   final DateTime? date;
 
-  ArchiveQuery copyWith({String? text, DateTime? date, bool clearDate = false}) {
+  ArchiveQuery copyWith({
+    String? text,
+    DateTime? date,
+    bool clearDate = false,
+  }) {
     return ArchiveQuery(
       text: text ?? this.text,
       date: clearDate ? null : date ?? this.date,
@@ -308,3 +316,52 @@ final devoByIdProvider = FutureProvider.family<Devo?, String>((ref, id) async {
   final repo = await ref.watch(devoRepositoryProvider.future);
   return repo.devoById(id);
 });
+
+final notesRepositoryProvider = Provider<NotesRepository>((ref) {
+  final config = ref.watch(appConfigProvider);
+  final client = ref.watch(supabaseClientProvider);
+  final user = client?.auth.currentUser;
+  final local = LocalNotesRepository(ref.watch(sharedPreferencesProvider));
+  if (config.useSupabase && client != null && user != null) {
+    return SyncingNotesRepository(
+      local: local,
+      remote: SupabaseNotesRepository(client),
+    );
+  }
+  return local;
+});
+
+class NotesController extends AsyncNotifier<List<DevoNote>> {
+  @override
+  Future<List<DevoNote>> build() {
+    ref.watch(authStateProvider);
+    return ref.watch(notesRepositoryProvider).load();
+  }
+
+  Future<void> save(DevoNote note) async {
+    final repo = ref.read(notesRepositoryProvider);
+    final now = DateTime.now().toUtc();
+    final current = [...state.value ?? await future];
+    final existing = current.where((item) => item.id == note.id).firstOrNull;
+    final stored = note.copyWith(
+      id: note.id.isEmpty ? newNoteId() : note.id,
+      createdAt: existing?.createdAt ?? note.createdAt,
+      updatedAt: now,
+    );
+    final next = [stored, ...current.where((item) => item.id != stored.id)];
+    state = AsyncData(next);
+    await repo.upsert(stored);
+  }
+
+  Future<void> delete(String id) async {
+    final repo = ref.read(notesRepositoryProvider);
+    final current = [...state.value ?? await future]
+      ..removeWhere((item) => item.id == id);
+    state = AsyncData(current);
+    await repo.delete(id);
+  }
+}
+
+final notesProvider = AsyncNotifierProvider<NotesController, List<DevoNote>>(
+  NotesController.new,
+);

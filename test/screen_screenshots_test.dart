@@ -63,8 +63,8 @@ Future<void> _showToday(WidgetTester tester, String theme) async {
   await _settle(tester);
   expect(find.text('A Refuge That Does Not Move'), findsWidgets);
   expect(find.textContaining('could not'), findsNothing);
-  expect(find.text('Friday'), findsWidgets);
-  expect(find.text('October 16, 2026'), findsOneWidget);
+  expect(find.textContaining('OCT 16'), findsOneWidget);
+  expect(find.textContaining('8 DEVOS'), findsOneWidget);
   await _capture(tester, 'micro-devos-today-$theme');
 }
 
@@ -80,12 +80,9 @@ Future<void> _showArchive(WidgetTester tester, String theme) async {
 }
 
 Future<void> _showFavorites(WidgetTester tester, String theme) async {
-  await tester.tap(find.byIcon(Icons.favorite_border));
+  await tester.tap(find.text('Saved'));
   await _settle(tester);
-  expect(
-    find.text('Hearts you keep stay on this phone for now.'),
-    findsOneWidget,
-  );
+  expect(find.textContaining('liked devo'), findsWidgets);
   expect(find.text('A Refuge That Does Not Move'), findsWidgets);
   await _capture(tester, 'micro-devos-favorites-$theme');
 }

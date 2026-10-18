@@ -14,10 +14,13 @@ final sampleClock = DateTime(2026, 10, 18);
 /// The app as a release build with no dart-defines: sample catalog, no
 /// Supabase client, reminders stubbed, clock fixed on Sunday 18 Oct 2026
 /// so Today resolves to the Friday 16 Oct edition.
-Future<Widget> buildSampleApp({required String themeMode}) async {
+Future<Widget> buildSampleApp({
+  required String themeMode,
+  List<String> favoriteIds = const ['fri-1'],
+}) async {
   SharedPreferences.setMockInitialValues({
     'theme_mode': themeMode,
-    'favorite_devo_ids': <String>['fri-1'],
+    'favorite_devo_ids': favoriteIds,
   });
   final preferences = await SharedPreferences.getInstance();
   final catalog = SampleCatalog.parse(

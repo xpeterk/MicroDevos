@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
@@ -9,6 +8,7 @@ import '../../domain/bible/verse_provider.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/models/user_preferences.dart';
 import '../../shared/widgets/reading_widgets.dart';
+import '../browse/share_sheet.dart';
 
 class DevoDetailScreen extends ConsumerWidget {
   const DevoDetailScreen({required this.id, super.key});
@@ -42,7 +42,8 @@ class DevoDetailScreen extends ConsumerWidget {
           if (value == null) {
             return const StatusMessage(
               title: 'Devotion not found',
-              body: 'It may have moved, or this sample set does not include it.',
+              body:
+                  'It may have moved, or this sample set does not include it.',
             );
           }
           return _Detail(devo: value);
@@ -70,9 +71,7 @@ class _DetailActions extends ConsumerWidget {
         ),
         IconButton(
           tooltip: 'Share',
-          onPressed: () => SharePlus.instance.share(
-            ShareParams(text: devo.toShareText(), subject: devo.title),
-          ),
+          onPressed: () => openShareSheet(context, devo),
           icon: const Icon(Icons.ios_share),
         ),
       ],
@@ -87,7 +86,8 @@ class _Detail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final preferences = ref.watch(preferencesProvider).value ?? UserPreferences.initial();
+    final preferences =
+        ref.watch(preferencesProvider).value ?? UserPreferences.initial();
     final catalog = ref.watch(verseCatalogProvider);
     final scheme = Theme.of(context).colorScheme;
     return ReadingWidth(
@@ -96,10 +96,8 @@ class _Detail extends ConsumerWidget {
         children: [
           Text(
             DateFormat('EEEE, MMMM d').format(devo.editionDate),
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontFamily: AppTheme.sans,
-              color: scheme.primary,
-            ),
+            style: Theme.of(context).textTheme.labelLarge
+                ?.copyWith(fontFamily: AppTheme.sans, color: scheme.primary),
           ),
           const SizedBox(height: 18),
           const Eyebrow('At a Glance'),
@@ -114,10 +112,7 @@ class _Detail extends ConsumerWidget {
           const SizedBox(height: 18),
           Container(width: 36, height: 2, color: scheme.secondary),
           const SizedBox(height: 18),
-          Text(
-            devo.title,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
+          Text(devo.title, style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 18),
           DevoBody(markdown: devo.bodyMd),
           TakeawayBlock(text: devo.takeaway),
@@ -125,8 +120,10 @@ class _Detail extends ConsumerWidget {
           ScriptureList(quotes: devo.scriptures),
           const SizedBox(height: 8),
           catalog.when(
-            loading: () => VerseCard(text: devo.verseText, reference: devo.verseRef),
-            error: (_, _) => VerseCard(text: devo.verseText, reference: devo.verseRef),
+            loading: () =>
+                VerseCard(text: devo.verseText, reference: devo.verseRef),
+            error: (_, _) =>
+                VerseCard(text: devo.verseText, reference: devo.verseRef),
             data: (verseCatalog) => _ResolvedVerse(
               catalog: verseCatalog,
               devo: devo,

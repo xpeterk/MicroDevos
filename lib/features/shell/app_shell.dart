@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/app_theme.dart';
+
 class AppShell extends StatelessWidget {
   const AppShell({required this.shell, super.key});
 
@@ -10,7 +12,17 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MICRO DEVOS'),
+        toolbarHeight: 72,
+        titleSpacing: 20,
+        title: Text(
+          shell.currentIndex == 3 ? 'Saved' : 'Micro Devos',
+          style: TextStyle(
+            fontFamily: AppTheme.serif,
+            fontSize: 28,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: 'Settings',

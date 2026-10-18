@@ -9,6 +9,7 @@ import '../../features/for_you/for_you_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/settings/sign_in_screen.dart';
 import '../../features/shell/app_shell.dart';
+import '../../features/browse/story_screen.dart';
 import '../../features/today/today_screen.dart';
 
 GoRouter buildRouter() {
@@ -53,6 +54,12 @@ GoRouter buildRouter() {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/story/:id',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) =>
+            StoryScreen(initialId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/devo/:id',

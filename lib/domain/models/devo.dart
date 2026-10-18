@@ -18,6 +18,7 @@ class Devo {
     this.editionUrl,
     this.stars,
     this.notionPageId,
+    this.imageUrl,
   });
 
   final String id;
@@ -36,6 +37,9 @@ class Devo {
   final String status;
   final String? notionPageId;
   final List<String> tags;
+
+  /// Optional banner. Null means the feed paints a placeholder.
+  final String? imageUrl;
 
   String get dateKey => dateKeyOf(editionDate);
 
@@ -76,7 +80,10 @@ class Devo {
       stars: json['stars'] as int?,
       status: json['status'] as String? ?? 'published',
       notionPageId: json['notion_page_id'] as String?,
-      tags: (json['tags'] as List<dynamic>? ?? const []).whereType<String>().toList(),
+      imageUrl: json['image_url'] as String?,
+      tags: (json['tags'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(),
     );
   }
 
@@ -96,6 +103,7 @@ class Devo {
     'stars': stars,
     'status': status,
     'notion_page_id': notionPageId,
+    'image_url': imageUrl,
     'tags': tags,
   };
 }

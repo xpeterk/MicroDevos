@@ -1,4 +1,5 @@
 import '../models/devo.dart';
+import '../models/devo_note.dart';
 import '../models/user_preferences.dart';
 
 abstract class DevoRepository {
@@ -16,6 +17,14 @@ abstract class FavoritesRepository {
   Future<Set<String>> load();
 
   Future<void> setFavorite(String devoId, bool favorite);
+}
+
+abstract class NotesRepository {
+  Future<List<DevoNote>> load();
+
+  Future<void> upsert(DevoNote note);
+
+  Future<void> delete(String id);
 }
 
 abstract class PreferencesRepository {

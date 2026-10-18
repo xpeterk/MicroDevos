@@ -22,6 +22,7 @@ Devo devoFromRow(Map<String, dynamic> row) {
     stars: row['stars'] as int?,
     status: row['status'] as String? ?? '',
     notionPageId: row['notion_page_id'] as String?,
+    imageUrl: row['image_url'] as String?,
     tags: tagsFromJoin(row['devo_tags']),
   );
 }

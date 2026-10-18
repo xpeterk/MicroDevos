@@ -111,9 +111,8 @@ void main() {
         expect(find.text('The devotions could not be loaded'), findsNothing);
         expect(find.text('This screen could not be drawn.'), findsNothing);
         expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
-        expect(find.text('Friday'), findsOneWidget);
-        expect(find.text('October 16, 2026'), findsOneWidget);
-        expect(find.text('Eight short devotions for the day.'), findsOneWidget);
+        expect(find.textContaining('OCT 16'), findsOneWidget);
+        expect(find.textContaining('8 DEVOS'), findsOneWidget);
         expect(
           find.textContaining('Showing Friday, October 16'),
           findsOneWidget,

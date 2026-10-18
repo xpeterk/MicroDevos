@@ -15,7 +15,7 @@ lib/
     supabase/   repository implementations used when keys are present
     bible/      KJV bundle, Crossway ESV client, API.Bible client
     enrichment/ disabled embeddings, local keyword tags, and test fakes
-  features/     today, devo, archive, favorites, settings, for_you, create
+  features/     today feed, devo, archive, favorites, settings, for_you, create
   shared/       reading layout widgets
 assets/         sample devos, tags, public-domain KJV verses, Source Serif / Source Sans
 supabase/       SQL migrations and the ingest-devos edge function
@@ -28,10 +28,11 @@ Screens:
 
 | Route | What it does |
 | --- | --- |
-| `/` | Today: the eight devotions for the edition date. Weekends open the latest weekday edition. |
-| `/devo/:id` | Full devotion, system share sheet, favorite toggle. |
+| `/` | Today feed: a story row for the edition, a pinned filter bar, and one post per devotion. Weekends open the latest weekday edition. |
+| `/story/:id` | Full-screen story for that devotion. Tap either side, or swipe up for the full page. |
+| `/devo/:id` | Full devotion, share card, favorite toggle. |
 | `/archive` | Search plus date chips. |
-| `/favorites` | Saved devotions. Stored on the device until the reader signs in. |
+| `/favorites` | Saved tab. Liked is a grid. Notes is a private list. |
 | `/settings` | Theme, Bible versions, tags, daily reminder time, account. |
 | `/for-you` | Stub for recommendations (milestone 3). |
 | `/create` | Stub for the premium generator (milestone 2). |
@@ -42,8 +43,8 @@ There is no author byline on any screen or in share text.
 
 Repository interfaces live in `lib/domain/repositories`. `AppConfig` chooses the implementation:
 
-- **Sample mode** (default). No `--dart-define` values. Sixteen original sample devotions and the KJV verses they quote ship in `assets/`. Favorites, Bible versions, tags, and the reminder time stay in `SharedPreferences`.
-- **Supabase mode.** Set `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Published devotions come from Postgres. Favorites and preferences sync for a signed-in user. Email, Google, and Apple sign-in are wired and stay optional; sample mode never asks for an account.
+- **Sample mode** (default). No `--dart-define` values. Sixteen original sample devotions and the KJV verses they quote ship in `assets/`. Favorites, notes, Bible versions, tags, and the reminder time stay in `SharedPreferences`.
+- **Supabase mode.** Set `SUPABASE_URL` and `SUPABASE_ANON_KEY`. Published devotions come from Postgres. Favorites, notes, and preferences sync for a signed-in user. Email, Google, and Apple sign-in are wired and stay optional; sample mode never asks for an account. Notes whose devotion id is not a uuid (the bundled sample ids) stay on the device.
 
 `VerseProvider` resolves the featured verse in the reader's chosen translation. The reading version is stored first in `bible_versions`. KJV is bundled and works offline. ESV calls the Crossway passage API when `ESV_API_KEY` is set. NIV, NLT, NKJV, CSB, and NASB call API.Bible when `API_BIBLE_KEY` and the matching Bible id are set. An unconfigured translation falls through to the next enabled version, then to the devotion's stored verse text.
 
@@ -53,17 +54,26 @@ Repository interfaces live in `lib/domain/repositories`. `AppConfig` chooses the
 
 `supabase/migrations/20261018000001_init.sql` creates:
 
-- `devos`, `tags`, `devo_tags`
+- `devos` (including nullable `image_url`), `tags`, `devo_tags`
 - `profiles` (optional location and `location_consent_at`)
 - `preferences` (`age_range`, `sex`, `life_situations[]`, `bible_versions[]`, `tags[]`, `notify_time`, plus widget and embedding columns reserved for later milestones)
-- `generated_devos`, `favorites`, `subscriptions`, `ai_usage`
+- `generated_devos`, `favorites`, `notes`, `subscriptions`, `ai_usage`
 - `verse_texts`, `news_cache`
 
-`devos.embedding` and `generated_devos.embedding` are `extensions.vector(1536)` with cosine HNSW indexes. Row-level security is enabled on every table. Readers can select published devotions, tags, and their own profile, preferences, favorites, subscription, and usage rows. `verse_texts` and `news_cache` have no client write policies; inserts and updates are revoked from `anon` and `authenticated`, so only the service role can write them. The same revoke covers catalog tables the client should not mutate (`devos`, `tags`, `devo_tags`, `generated_devos`, `subscriptions`, `ai_usage`).
+`devos.embedding` and `generated_devos.embedding` are `extensions.vector(1536)` with cosine HNSW indexes. Row-level security is enabled on every table. Readers can select published devotions, tags, and their own profile, preferences, favorites, notes, subscription, and usage rows. `verse_texts` and `news_cache` have no client write policies; inserts and updates are revoked from `anon` and `authenticated`, so only the service role can write them. The same revoke covers catalog tables the client should not mutate (`devos`, `tags`, `devo_tags`, `generated_devos`, `subscriptions`, `ai_usage`).
 
 The `ingest-devos` edge function accepts a POST of one edition (1–8 devotions) and upserts on `(edition_date, position)`. Callers send the shared secret in `x-ingest-secret`. JWT verification is off for that function (`supabase/config.toml`).
 
 A new auth user gets a `profiles` row and a `preferences` row from a trigger.
+
+### Plan additions
+
+`supabase/migrations/20261018000002_feed_notes_and_images.sql` adds two things on top of the foundation schema:
+
+- `devos.image_url` is nullable text. Sample devotions leave it null. The feed paints a gradient placeholder and does not load a remote image.
+- `notes` stores a private note on exactly one of `devo_id` or `generated_devo_id`. Columns are `body`, optional `anchor_text`, `anchor_start`, `anchor_end`, and a `section` key (`hook`, `body`, `takeaway`, `verse`, `scripture`) so a highlight can be found again after a re-render. A null section attaches the note to the whole devotion. Row-level security lets a signed-in reader select, insert, update, and delete only their own rows.
+
+With no Supabase session, likes and notes stay in `SharedPreferences`. Signing in syncs favorites through the existing table and pushes notes whose target id is a uuid.
 
 ## Setup
 

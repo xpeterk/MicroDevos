@@ -21,6 +21,17 @@ begin
     raise exception 'devos.embedding type is %, expected vector(1536)', embedding_type;
   end if;
 
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'devos'
+      and column_name = 'image_url'
+      and is_nullable = 'YES'
+  ) then
+    raise exception 'devos.image_url is missing or not nullable';
+  end if;
+
   insert into auth.users (id, email) values
     (user_a, 'reader-a@example.com'),
     (user_b, 'reader-b@example.com');
@@ -125,6 +136,45 @@ begin
     when insufficient_privilege then
       null;
   end;
+
+  insert into public.notes (
+    user_id, devo_id, body, anchor_text, anchor_start, anchor_end, section
+  ) values (
+    user_a, devo, 'Sit quietly.', 'God is our refuge', 0, 17, 'verse'
+  );
+
+  select count(*) into n from public.notes;
+  if n <> 1 then
+    raise exception 'user A saw % note rows', n;
+  end if;
+
+  select count(*) into n
+  from public.notes
+  where anchor_text = 'God is our refuge'
+    and anchor_start = 0
+    and anchor_end = 17
+    and section = 'verse';
+  if n <> 1 then
+    raise exception 'note anchor columns were not stored';
+  end if;
+
+  begin
+    insert into public.notes (user_id, devo_id, body)
+    values (user_b, devo, 'not mine');
+    raise exception 'user A inserted a note for user B';
+  exception
+    when insufficient_privilege then
+      null;
+  end;
+
+  begin
+    insert into public.notes (user_id, body)
+    values (user_a, 'missing target');
+    raise exception 'note with no devotion target was inserted';
+  exception
+    when check_violation then
+      null;
+  end;
 end
 $$;
 
@@ -139,6 +189,11 @@ begin
   select count(*) into n from public.favorites;
   if n <> 0 then
     raise exception 'user B saw % favorite rows', n;
+  end if;
+
+  select count(*) into n from public.notes;
+  if n <> 0 then
+    raise exception 'user B saw % note rows', n;
   end if;
 
   select count(*) into n from public.preferences;
@@ -180,6 +235,22 @@ begin
   if n <> 0 then
     raise exception 'anon saw favorites';
   end if;
+
+  select count(*) into n from public.notes;
+  if n <> 0 then
+    raise exception 'anon saw notes';
+  end if;
+
+  begin
+    insert into public.notes (user_id, devo_id, body)
+    select '11111111-1111-4111-8111-111111111111', id, 'anon note'
+    from public.devos
+    where notion_page_id = 'notion-page-rls';
+    raise exception 'anon inserted a note';
+  exception
+    when insufficient_privilege then
+      null;
+  end;
 
   begin
     insert into public.news_cache (location_key, topic, items)
