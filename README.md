@@ -2,7 +2,7 @@
 
 Daily Christian micro-devotionals. Each weekday edition holds eight short devotions: a title, a one-line hook ("At a Glance"), a short reflection, a takeaway, Scripture quotes, and a featured verse.
 
-This repository is **milestone 1**: the app foundation, the data model, sample content that runs with no keys, and the publishing path from Notion into Supabase. Later milestones add the premium generator, recommendations, the home-screen widget, and subscriptions.
+This repository ships the app foundation, the data model, sample content that runs with no keys, the publishing path from Notion into Supabase, and Personalize (a premium generator that currently uses a fake, deterministic provider). Later milestones add recommendations, the home-screen widget, and subscriptions.
 
 ## Architecture
 
@@ -15,10 +15,10 @@ lib/
     supabase/   repository implementations used when keys are present
     bible/      KJV bundle, Crossway ESV client, API.Bible client
     enrichment/ disabled embeddings, local keyword tags, and test fakes
-  features/     today feed, devo, archive, favorites, settings, for_you, create
+  features/     today feed, devo, archive, favorites, settings, for_you, create, personalize
   shared/       reading layout widgets
 assets/         sample devos, tags, public-domain KJV verses, Source Serif / Source Sans
-supabase/       SQL migrations and the ingest-devos edge function
+supabase/       SQL migrations, ingest-devos, and generate-devo
 tools/notion-import/   Notion "Micro Devos Cards" importer
 ```
 
@@ -32,10 +32,12 @@ Screens:
 | `/story/:id` | Full-screen story for that devotion. Tap either side, or swipe up for the full page. |
 | `/devo/:id` | Full devotion, share card, favorite toggle. |
 | `/archive` | Search plus date chips. |
-| `/favorites` | Saved tab. Liked is a grid. Notes is a private list. |
+| `/favorites` | Saved tab. Liked, Notes, and Mine. Mine holds devotions this reader created. |
 | `/settings` | Theme, Bible versions, tags, daily reminder time, account. |
-| `/for-you` | Stub for recommendations (milestone 3). |
-| `/create` | Stub for the premium generator (milestone 2). |
+| `/for-you` | Stub for recommendations. Create a devotion opens Personalize. |
+| `/create` | Points at the top-bar Create button. Personalize is that sheet, not this route. |
+
+**Create** in the top bar opens Personalize and drafts a new devotion. The filter bar only narrows devotions already in the feed. The sheet steps are What (Topic or Verse, with optional age and life-situation chips), Style, then Generate. The result is a feed card with like, share, note, Save to Mine, and Regenerate. Verse mode stores the reader's ESV or NIV choice. The on-sheet preview is bundled KJV and is labeled as sample text.
 
 There is no author byline on any screen or in share text.
 
@@ -73,7 +75,30 @@ A new auth user gets a `profiles` row and a `preferences` row from a trigger.
 - `devos.image_url` is nullable text. Sample devotions leave it null. The feed paints a gradient placeholder and does not load a remote image.
 - `notes` stores a private note on exactly one of `devo_id` or `generated_devo_id`. Columns are `body`, optional `anchor_text`, `anchor_start`, `anchor_end`, and a `section` key (`hook`, `body`, `takeaway`, `verse`, `scripture`) so a highlight can be found again after a re-render. A null section attaches the note to the whole devotion. Row-level security lets a signed-in reader select, insert, update, and delete only their own rows.
 
-With no Supabase session, likes and notes stay in `SharedPreferences`. Signing in syncs favorites through the existing table and pushes notes whose target id is a uuid.
+With no Supabase session, likes and notes stay in `SharedPreferences`. Signing in syncs favorites through the existing table and pushes notes whose target id is a uuid. Personalized devotions saved on this phone stay in `SharedPreferences` under Mine until a signed-in reader saves them to `public.mine`.
+
+### Personalize
+
+`supabase/migrations/20261019000003_personalize.sql` adds:
+
+- `style_profiles` (`key`, `label`, `blurb`, `kind` of `style` or `classic`, `generation_notes`, `active`). The nine seed rows ship with `generation_notes` empty. Fill that column later with the service role. Row-level security lets anonymous and signed-in readers select active rows, and the column grant is only `key`, `label`, `blurb`, and `kind`. `generation_notes` is not granted to `anon` or `authenticated`.
+- `generated_devos.style_key` and `generated_devos.verse_refs`, plus a cache index on `(profile_hash, topic_key, style_key)`.
+- `mine`, a reader's saved generated devotions, separate from favorites.
+- `match_generated_devo`, a service-role nearest-neighbor lookup. The fake provider returns no embedding, so the function skips that lookup.
+
+The `generate-devo` edge function requires a signed-in reader (`verify_jwt = true`). It checks `profiles.tier = 'premium'`, then the weekly per-user cap and the global monthly spend ceiling. Both limits are placeholders and are not decided:
+
+| Env | Default | Meaning |
+| --- | --- | --- |
+| `GENERATION_PROVIDER` | `fake` | Which `GenerationProvider` to construct. Only `fake` exists. |
+| `WEEKLY_GENERATION_CAP` | `5` | Per-user generations since Monday. Not decided. |
+| `MONTHLY_SPEND_CEILING_USD` | `25` | Sum of `ai_usage.cost_usd` since the first of the month, across readers. Not decided. |
+
+A cache hit on `(profile_hash, topic_key, style_key)` increments `reuse_count` and does not add a generation. Otherwise the provider returns the standard shape (hook, title, two short sections, two Scripture quotes, a verse callout, a next step). A safety check then runs. The shipped check is a pass-through. The owner defines the guardrails; this repo does not invent them. The function stores tokens, cost, and the row, and updates `ai_usage`.
+
+The app calls `generate-devo` when a reader is signed in. With no Supabase session it uses the same fake provider in-process, so the flow runs with no key and no paid call.
+
+To plug in a real provider later, implement `GenerationProvider` in `supabase/functions/generate-devo/provider.ts` (and the Dart interface in `lib/domain/personalize/personalize_engine.dart` if sample mode should match). Read any model key from the function environment, never from the app. Return the same draft shape. Register the name in `providerFromEnv`, and set `GENERATION_PROVIDER` to that name. Leave `generation_notes` as the server-only writing reference for that provider. Do not add a model key to `.env.example` until that provider exists.
 
 ## Setup
 
@@ -137,7 +162,11 @@ flutter run \
 
 ### Local database
 
-Hosted Supabase: run `supabase/migrations/20261018000001_init.sql` in the SQL editor, or `supabase db push` from the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started). `supabase start` then `supabase db reset` applies the same file on a local Supabase stack (that path needs Docker).
+Hosted Supabase: run the migrations in order in the SQL editor, or `supabase db push` from the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started). `supabase start` then `supabase db reset` applies the same files on a local Supabase stack (that path needs Docker).
+
+1. `supabase/migrations/20261018000001_init.sql`
+2. `supabase/migrations/20261018000002_feed_notes_and_images.sql`
+3. `supabase/migrations/20261019000003_personalize.sql`
 
 Plain Postgres 16 with pgvector, from a new database:
 
@@ -151,7 +180,10 @@ Set the edge function secret `INGEST_SHARED_SECRET` in the project, then deploy:
 
 ```bash
 supabase functions deploy ingest-devos --no-verify-jwt
+supabase functions deploy generate-devo
 ```
+
+`generate-devo` keeps JWT verification on. Set `GENERATION_PROVIDER=fake` (the default), `WEEKLY_GENERATION_CAP`, and `MONTHLY_SPEND_CEILING_USD` in the function environment. The two caps are placeholders. The fake provider does not call a model and does not need an API key.
 
 Example body:
 
@@ -230,11 +262,14 @@ npm run typecheck
 | `NOTION_TOKEN` | Notion importer |
 | `NOTION_DATA_SOURCE_ID` | Importer. Defaults to Micro Devos Cards. |
 | `INGEST_SHARED_SECRET` | `ingest-devos` edge function. Not used by the app. |
+| `GENERATION_PROVIDER` | `generate-devo`. Default `fake`. No other provider is implemented. |
+| `WEEKLY_GENERATION_CAP` | `generate-devo`. Placeholder default `5`. Not decided. |
+| `MONTHLY_SPEND_CEILING_USD` | `generate-devo`. Placeholder default `25`. Not decided. |
 | `ESV_API_KEY` | App (`--dart-define`), Crossway ESV |
 | `API_BIBLE_KEY` | App (`--dart-define`) |
 | `API_BIBLE_ID_NIV` `API_BIBLE_ID_NLT` `API_BIBLE_ID_NKJV` `API_BIBLE_ID_CSB` `API_BIBLE_ID_NASB` | App (`--dart-define`) |
 
-Copy `.env.example` when you want a local checklist. `.env` is gitignored. There is no embedding or model API key. The embedding provider stays disabled until a later milestone.
+Copy `.env.example` when you want a local checklist. `.env` is gitignored. There is no embedding or model API key. The embedding provider stays disabled, and Personalize uses the fake provider.
 
 ## Tests
 
@@ -243,7 +278,7 @@ flutter analyze
 flutter test
 ```
 
-`flutter test` covers the Notion body parser (including the verse-box card), the sample repository (search, dates, share text, favorites, preferences), Bible-version selection, KJV lookup, and the embedding and tagging providers. The importer's TypeScript parser and fixture import are tested with `npm test` inside `tools/notion-import`. Database checks:
+`flutter test` covers the Notion body parser (including the verse-box card), the sample repository (search, dates, share text, favorites, preferences), Bible-version selection, KJV lookup, the embedding and tagging providers, the Personalize cap and cache, and a check that reader-facing style labels do not contain a person's name. The importer's TypeScript parser and fixture import are tested with `npm test` inside `tools/notion-import`. Database checks, including the grant that hides `generation_notes` from anonymous readers:
 
 ```bash
 bash supabase/tests/apply_and_test.sh
@@ -260,7 +295,7 @@ The APK is written to `build/app/outputs/flutter-apk/app-debug.apk`. iOS is part
 ## Roadmap
 
 1. **Foundation** (this milestone). App shell, sample and Supabase data, verse providers, Notion import, ingest function, local reminder.
-2. **Premium generator.** A Create flow that drafts a devotion from a short prompt, with a server-side Google News RSS edge function for local news when the reader has opted into location. Usage is recorded in `ai_usage` with cost caps before a model call proceeds.
+2. **Premium generator.** Personalize is in the app and in `generate-devo`, backed by the fake provider. A real provider, the weekly cap, the monthly ceiling, and the safety guardrails are still open. Local news is not part of this flow.
 3. **Recommendations.** "For You" ranks published and generated devotions with the pgvector embeddings already on `devos` and `generated_devos`, using the reader's tags and life situations.
 4. **Home-screen widget.** `home_widget`, with Android Glance and iOS WidgetKit, showing the featured verse or the next unread devotion.
 5. **Subscriptions.** RevenueCat products mapped onto the `subscriptions` table, gating Create and the widget.
@@ -275,4 +310,4 @@ The app runs on sample data without any of these. Production needs:
 - `INGEST_SHARED_SECRET` for the daily publishing pipeline.
 - An ESV API key from Crossway, and confirmation that the license covers a distributed app.
 - An API.Bible key plus a Bible id for each of NIV, NLT, NKJV, CSB, and NASB. NIV in particular needs the publisher's approval.
-- Product decisions deferred to later milestones: price, theology and safety checks for generated text, the public store name, and which translations ship on day one.
+- Product decisions still open: the weekly generation cap, the monthly spend ceiling, price, the safety guardrails for generated text (`generation_notes` stays empty until filled with the service role), the public store name, and which translations ship on day one.

@@ -3,3 +3,7 @@
 
 [functions.ingest-devos]
 verify_jwt = false
+
+# generate-devo requires a signed-in reader. The gateway checks the JWT.
+[functions.generate-devo]
+verify_jwt = true

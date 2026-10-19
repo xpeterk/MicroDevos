@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/reading_widgets.dart';
+import '../personalize/personalize_sheet.dart';
 
 /// TODO(milestone-3): Replace this stub with tag recommendations backed by
 /// pgvector. No model call on the free path. Premium adds a daily personalized pick.
-class ForYouScreen extends StatelessWidget {
+class ForYouScreen extends ConsumerWidget {
   const ForYouScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     return ReadingWidth(
       child: ListView(
@@ -38,7 +40,7 @@ class ForYouScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           OutlinedButton(
-            onPressed: () => context.push('/create'),
+            onPressed: () => openPersonalizeSheet(context, ref),
             child: const Text('Create a devotion'),
           ),
         ],

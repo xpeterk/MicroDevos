@@ -276,3 +276,103 @@ begin
   end if;
 end
 $$;
+
+-- Personalize: public style labels, hidden generation notes, private Mine.
+do $$
+declare
+  n integer;
+  label_list text;
+begin
+  set local role anon;
+
+  select count(*) into n from (
+    select key, label, blurb, kind from public.style_profiles
+  ) styles;
+  if n <> 9 then
+    raise exception 'anon saw % style rows, expected 9', n;
+  end if;
+
+  select string_agg(label, '|' order by label) into label_list
+  from public.style_profiles
+  where kind = 'style';
+  if label_list <> 'Bible on the go|Good news & invitation|Grace & the Spirit|Healing & faith|Purpose & practical living' then
+    raise exception 'style labels are %', label_list;
+  end if;
+
+  if exists (
+    select 1 from public.style_profiles
+    where kind = 'style'
+      and (
+        label ~ '\m[A-Z][a-z]+ [A-Z][a-z]+\M'
+        or label ~* '(spurgeon|murray|meyer|henry)'
+      )
+  ) then
+    raise exception 'a style label contains a person name';
+  end if;
+
+  select string_agg(label, '|' order by key) into label_list
+  from public.style_profiles
+  where kind = 'classic';
+  if label_list <> 'Matthew Henry|F. B. Meyer|Andrew Murray|C. H. Spurgeon' then
+    raise exception 'classic labels are %', label_list;
+  end if;
+
+  begin
+    perform generation_notes from public.style_profiles;
+    raise exception 'anon read generation_notes';
+  exception
+    when insufficient_privilege then
+      null;
+  end;
+
+  begin
+    insert into public.mine (user_id, generated_devo_id)
+    values (
+      '11111111-1111-4111-8111-111111111111',
+      '00000000-0000-4000-8000-000000000001'
+    );
+    raise exception 'anon inserted mine';
+  exception
+    when insufficient_privilege then
+      null;
+  end;
+end
+$$;
+
+do $$
+declare
+  user_a uuid := '11111111-1111-4111-8111-111111111111';
+  user_b uuid := '22222222-2222-4222-8222-222222222222';
+  devo uuid;
+  n integer;
+  notes text;
+begin
+  set local role service_role;
+
+  select coalesce(string_agg(generation_notes, ''), '') into notes
+  from public.style_profiles;
+  if notes <> '' then
+    raise exception 'generation_notes should ship empty';
+  end if;
+
+  insert into public.generated_devos (
+    content, created_by, style_key, topic_key, profile_hash
+  ) values (
+    '{"title":"Steady Ground on a First Morning"}'::jsonb,
+    user_a,
+    'purpose',
+    'topic:job',
+    '|'
+  ) returning id into devo;
+
+  insert into public.mine (user_id, generated_devo_id) values (user_a, devo);
+
+  perform set_config('request.jwt.claim.sub', user_b::text, true);
+  set local role authenticated;
+
+  select count(*) into n from public.mine;
+  if n <> 0 then
+    raise exception 'user B saw % mine rows', n;
+  end if;
+end
+$$;

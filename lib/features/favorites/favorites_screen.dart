@@ -7,9 +7,12 @@ import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/models/devo_note.dart';
+import '../../domain/models/generated_devo.dart';
 import '../../shared/widgets/reading_widgets.dart';
 import '../browse/banner.dart';
 import '../browse/browse_state.dart';
+import '../personalize/personalize_run.dart';
+import '../personalize/personalize_state.dart';
 
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
@@ -26,8 +29,11 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   Widget build(BuildContext context) {
     final favorites = ref.watch(favoritesProvider);
     final notes = ref.watch(notesProvider);
+    final mine = ref.watch(mineProvider);
     final segment = ref.watch(savedSegmentProvider);
-    if (favorites.isLoading || notes.isLoading) return const LoadingView();
+    if (favorites.isLoading || notes.isLoading || mine.isLoading) {
+      return const LoadingView();
+    }
     if (favorites.hasError) {
       return StatusMessage(
         title: 'Saved devotions could not be opened',
@@ -38,6 +44,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     }
     final ids = (favorites.value ?? const <String>{}).toList()..sort();
     final noteList = notes.value ?? const <DevoNote>[];
+    final mineList = mine.value ?? const <GeneratedDevo>[];
     final likedDevos =
         [for (final id in ids) ?ref.watch(devoByIdProvider(id)).asData?.value]
           ..sort((a, b) {
@@ -135,7 +142,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       ],
                     ),
                   ),
-                ] else ...[
+                ] else if (segment == SavedSegment.notes) ...[
                   Text(
                     noteList.isEmpty
                         ? 'No notes yet'
@@ -150,6 +157,25 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     noteList.isEmpty
                         ? 'Tap the post-it on a devotion. Notes stay private.'
                         : 'Newest first. Tap a note to open it on its passage.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontFamily: AppTheme.sans,
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ] else ...[
+                  Text(
+                    mineList.isEmpty
+                        ? 'No personalized devos yet'
+                        : '${mineList.length} personalized ${mineList.length == 1 ? 'devo' : 'devos'}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontFamily: AppTheme.sans,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Devos you created and saved. Private to you.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontFamily: AppTheme.sans,
                       fontSize: 14,
@@ -190,7 +216,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               );
             }, childCount: shown.length),
           )
-        else
+        else if (segment == SavedSegment.notes)
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             sliver: SliverList(
@@ -199,8 +225,25 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 return _NoteGroupCard(notes: group);
               }, childCount: _groups(noteList).length),
             ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: 0.78,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) =>
+                    MineTile(devo: mineList[index], index: index),
+                childCount: mineList.length,
+              ),
+            ),
           ),
-        if (segment == SavedSegment.liked)
+        if (segment == SavedSegment.liked || segment == SavedSegment.mine)
           const SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.fromLTRB(16, 8, 16, 28),
@@ -256,6 +299,15 @@ class _SegmentSwitch extends ConsumerWidget {
             onTap: () => ref
                 .read(savedSegmentProvider.notifier)
                 .show(SavedSegment.notes),
+          ),
+          _SegmentButton(
+            key: const Key('saved-mine'),
+            label: 'Mine',
+            icon: Icons.auto_awesome,
+            selected: segment == SavedSegment.mine,
+            onTap: () => ref
+                .read(savedSegmentProvider.notifier)
+                .show(SavedSegment.mine),
           ),
         ],
       ),

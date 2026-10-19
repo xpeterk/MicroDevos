@@ -275,7 +275,7 @@ final passageSelectionProvider =
       PassageSelectionController.new,
     );
 
-enum SavedSegment { liked, notes }
+enum SavedSegment { liked, notes, mine }
 
 class SavedSegmentController extends Notifier<SavedSegment> {
   @override
