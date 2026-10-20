@@ -146,10 +146,9 @@ class ShowCreateHintController extends Notifier<bool> {
   void hide() => state = false;
 }
 
-final showCreateHintProvider =
-    NotifierProvider<ShowCreateHintController, bool>(
-      ShowCreateHintController.new,
-    );
+final showCreateHintProvider = NotifierProvider<ShowCreateHintController, bool>(
+  ShowCreateHintController.new,
+);
 
 /// How long the writing screen stays up. Widget tests advance this with pump.
 final personalizePaceProvider = Provider<Duration>(
@@ -219,6 +218,10 @@ class PersonalizeRunController extends Notifier<PersonalizeRun> {
       );
       return;
     }
+    if (result is GenerateRejected) {
+      state = PersonalizeRun(request: request, blockedReason: result.reason);
+      return;
+    }
     final ok = result as GenerateOk;
     state = PersonalizeRun(devo: ok.devo, request: request);
   }
@@ -261,7 +264,10 @@ class MineController extends AsyncNotifier<List<GeneratedDevo>> {
     state = AsyncData(next);
     await ref
         .read(sharedPreferencesProvider)
-        .setString(_key, jsonEncode(next.map((item) => item.toJson()).toList()));
+        .setString(
+          _key,
+          jsonEncode(next.map((item) => item.toJson()).toList()),
+        );
   }
 
   Future<void> replaceAll(List<GeneratedDevo> devos) async {

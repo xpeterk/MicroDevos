@@ -1,7 +1,9 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
   providerFromEnv,
-  PassThroughSafetyChecker,
+  ScriptureAnchorChecker,
+  ScriptureAnchorException,
+  helpNoteFor,
   type GenerateInput,
   type GenerationDraft,
 } from "./provider.ts";
@@ -61,6 +63,7 @@ function contentOf(draft: GenerationDraft) {
     verse_text: draft.verse_text,
     verse_ref: draft.verse_ref,
     scriptures: draft.scriptures,
+    help_note: draft.help_note ?? null,
   };
 }
 
@@ -196,8 +199,17 @@ Deno.serve(async (req) => {
   }
 
   const provider = providerFromEnv();
-  const safety = new PassThroughSafetyChecker();
-  const draft = await safety.review(provider.generate(inputWithNotes));
+  const safety = new ScriptureAnchorChecker();
+  let draft: GenerationDraft;
+  try {
+    draft = safety.review(provider.generate(inputWithNotes), inputWithNotes);
+  } catch (error) {
+    if (error instanceof ScriptureAnchorException) {
+      return json({ error: error.message }, 422);
+    }
+    throw error;
+  }
+  draft = { ...draft, help_note: helpNoteFor(inputWithNotes) };
 
   // Nearest neighbor runs only when a provider returns a vector.
   // The fake provider leaves embedding null, so this lookup is skipped.

@@ -15,6 +15,7 @@ class GeneratedDevo {
     required this.styleKind,
     required this.promptLabel,
     required this.reuseCount,
+    this.helpNote,
   });
 
   final String id;
@@ -30,6 +31,7 @@ class GeneratedDevo {
   final String styleKind;
   final String promptLabel;
   final int reuseCount;
+  final String? helpNote;
 
   bool get isClassic => styleKind == 'classic';
 
@@ -49,6 +51,7 @@ class GeneratedDevo {
       styleLabel: styleLabel,
       styleKind: styleKind,
       promptLabel: promptLabel,
+      helpNote: helpNote,
       reuseCount: reuseCount ?? this.reuseCount,
     );
   }
@@ -67,6 +70,7 @@ class GeneratedDevo {
     'style_kind': styleKind,
     'prompt_label': promptLabel,
     'reuse_count': reuseCount,
+    'help_note': helpNote,
   };
 
   factory GeneratedDevo.fromJson(Map<String, dynamic> json) {
@@ -91,6 +95,9 @@ class GeneratedDevo {
       styleKind: json['style_kind'] as String? ?? 'style',
       promptLabel: json['prompt_label'] as String? ?? '',
       reuseCount: json['reuse_count'] as int? ?? 0,
+      helpNote: (json['help_note'] as String?)?.trim().isNotEmpty == true
+          ? (json['help_note'] as String).trim()
+          : null,
     );
   }
 }

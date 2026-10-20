@@ -91,9 +91,8 @@ class PersonalizeWritingScreen extends ConsumerWidget {
               const SizedBox(height: 28),
               Text(
                 'Writing your devo...',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(context).textTheme.headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -113,10 +112,7 @@ class PersonalizeWritingScreen extends ConsumerWidget {
                 runSpacing: 8,
                 children: [
                   if (request != null && request.promptLabel.isNotEmpty)
-                    _InfoChip(
-                      label: request.promptLabel,
-                      filled: true,
-                    ),
+                    _InfoChip(label: request.promptLabel, filled: true),
                   if (style != null)
                     _InfoChip(
                       label: style.isClassic
@@ -218,7 +214,11 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.auto_awesome, size: 14, color: AppColors.olive),
+                const Icon(
+                  Icons.auto_awesome,
+                  size: 14,
+                  color: AppColors.olive,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -250,7 +250,11 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
                 ),
               ),
               const Positioned(right: -20, top: 10, child: _Bubble(size: 120)),
-              const Positioned(left: -30, bottom: -10, child: _Bubble(size: 140)),
+              const Positioned(
+                left: -30,
+                bottom: -10,
+                child: _Bubble(size: 140),
+              ),
               Positioned(
                 right: 24,
                 top: 28,
@@ -260,11 +264,7 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
                   color: Colors.white.withValues(alpha: 0.28),
                 ),
               ),
-              const Positioned(
-                top: 12,
-                right: 12,
-                child: _ImagePill(),
-              ),
+              const Positioned(top: 12, right: 12, child: _ImagePill()),
               Positioned(
                 left: 20,
                 right: 20,
@@ -321,10 +321,8 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
             children: [
               Text(
                 devo.hook,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontSize: 16,
-                  height: 1.35,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(fontSize: 16, height: 1.35),
               ),
               const SizedBox(height: 8),
               const _DashDivider(),
@@ -355,6 +353,19 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              if (devo.helpNote != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  devo.helpNote!,
+                  key: const Key('help-note'),
+                  style: TextStyle(
+                    fontFamily: AppTheme.sans,
+                    fontSize: 13,
+                    height: 1.35,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
@@ -411,10 +422,7 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
               ),
               if (_expanded)
                 for (final section in devo.sections) ...[
-                  Text(
-                    section,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
+                  Text(section, style: Theme.of(context).textTheme.bodyLarge),
                   const SizedBox(height: 12),
                 ],
               Row(
@@ -439,8 +447,9 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
                   Expanded(
                     child: OutlinedButton.icon(
                       key: const Key('regenerate'),
-                      onPressed: () =>
-                          ref.read(personalizeRunProvider.notifier).regenerate(),
+                      onPressed: () => ref
+                          .read(personalizeRunProvider.notifier)
+                          .regenerate(),
                       icon: const Icon(Icons.refresh),
                       label: const Text('Regenerate'),
                       style: OutlinedButton.styleFrom(

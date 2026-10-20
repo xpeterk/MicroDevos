@@ -65,14 +65,16 @@ void main() {
     await _capture(tester, 'build-PZ2');
 
     final prefs = container.read(preferencesProvider).requireValue;
-    await container.read(preferencesProvider.notifier).updatePreferences(
-      prefs.copyWith(
-        bibleVersions: const BibleVersionSelection(
-          enabled: {BibleVersion.esv, BibleVersion.kjv},
-          readingVersion: BibleVersion.esv,
-        ),
-      ),
-    );
+    await container
+        .read(preferencesProvider.notifier)
+        .updatePreferences(
+          prefs.copyWith(
+            bibleVersions: const BibleVersionSelection(
+              enabled: {BibleVersion.esv, BibleVersion.kjv},
+              readingVersion: BibleVersion.esv,
+            ),
+          ),
+        );
     await tester.tap(find.byKey(const Key('personalize-verse')));
     await tester.pump();
     await tester.enterText(find.byKey(const Key('verse-field')), 'Phil 4:6-7');
@@ -104,6 +106,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('personalize-result')), findsOneWidget);
     expect(find.text('Steady Ground on a First Morning'), findsOneWidget);
+    expect(find.byKey(const Key('help-note')), findsNothing);
     await _capture(tester, 'build-PZ6');
 
     await tester.tap(find.byKey(const Key('personalize-close')));
@@ -129,10 +132,7 @@ void main() {
     expect(find.textContaining('Adapted from C. H. Spurgeon'), findsOneWidget);
     await _capture(tester, 'build-PZ6c');
 
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('save-to-mine')),
-      80,
-    );
+    await tester.scrollUntilVisible(find.byKey(const Key('save-to-mine')), 80);
     await tester.pump();
     await tester.tap(find.byKey(const Key('save-to-mine')));
     await tester.pump();
@@ -159,6 +159,25 @@ void main() {
     expect(find.text('4 personalized devos'), findsOneWidget);
     expect(find.text('When the Answer Is Wait'), findsOneWidget);
     await _capture(tester, 'build-PZ6b');
+
+    await tester.tap(find.text('Today'));
+    await _settle(tester);
+    await tester.tap(find.byKey(const Key('create-button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.enterText(find.byKey(const Key('topic-field')), 'Anxiety');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('personalize-next')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('personalize-generate')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump();
+    expect(find.byKey(const Key('help-note')), findsOneWidget);
+    expect(find.textContaining('call or text 988 any time.'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('help-note')));
+    await tester.pump();
+    await _capture(tester, 'build-PZ6-help');
 
     expect(tester.takeException(), isNull);
   }, timeout: const Timeout(Duration(seconds: 90)));
@@ -189,9 +208,8 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 void _hideSnack(WidgetTester tester) {
-  ScaffoldMessenger.of(
-    tester.element(find.byType(Scaffold).first),
-  ).hideCurrentSnackBar();
+  ScaffoldMessenger.of(tester.element(find.byType(Scaffold).first))
+      .hideCurrentSnackBar();
 }
 
 Future<void> _capture(WidgetTester tester, String name) async {

@@ -395,7 +395,9 @@ class _PersonalizeSheetState extends ConsumerState<PersonalizeSheet> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  key: Key(form.step == 0 ? 'personalize-cancel' : 'personalize-back'),
+                  key: Key(
+                    form.step == 0 ? 'personalize-cancel' : 'personalize-back',
+                  ),
                   onPressed: () {
                     if (form.step == 0) {
                       Navigator.of(context).pop();
@@ -416,7 +418,9 @@ class _PersonalizeSheetState extends ConsumerState<PersonalizeSheet> {
                 flex: 2,
                 child: FilledButton.icon(
                   key: Key(
-                    form.step == 0 ? 'personalize-next' : 'personalize-generate',
+                    form.step == 0
+                        ? 'personalize-next'
+                        : 'personalize-generate',
                   ),
                   onPressed: form.step == 0
                       ? (form.canContinue
@@ -469,11 +473,7 @@ class _StyleStep extends ConsumerWidget {
       children: [
         const _SectionLabel('STYLES', trailing: 'pick one'),
         const SizedBox(height: 8),
-        _StyleGrid(
-          styles: styles,
-          selected: selected,
-          placeholder: true,
-        ),
+        _StyleGrid(styles: styles, selected: selected, placeholder: true),
         const SizedBox(height: 16),
         const _SectionLabel('CLASSICS (PUBLIC DOMAIN)'),
         const SizedBox(height: 8),
@@ -617,10 +617,7 @@ class _MoreStyles extends StatelessWidget {
       ),
       child: const Text(
         'More styles coming',
-        style: TextStyle(
-          fontFamily: AppTheme.sans,
-          color: AppColors.inkMuted,
-        ),
+        style: TextStyle(fontFamily: AppTheme.sans, color: AppColors.inkMuted),
       ),
     );
   }
@@ -720,7 +717,9 @@ class _ModeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? AppColors.card : AppColors.paperDeep.withValues(alpha: 0.45),
+      color: selected
+          ? AppColors.card
+          : AppColors.paperDeep.withValues(alpha: 0.45),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(

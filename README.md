@@ -94,7 +94,11 @@ The `generate-devo` edge function requires a signed-in reader (`verify_jwt = tru
 | `WEEKLY_GENERATION_CAP` | `5` | Per-user generations since Monday. Not decided. |
 | `MONTHLY_SPEND_CEILING_USD` | `25` | Sum of `ai_usage.cost_usd` since the first of the month, across readers. Not decided. |
 
-A cache hit on `(profile_hash, topic_key, style_key)` increments `reuse_count` and does not add a generation. Otherwise the provider returns the standard shape (hook, title, two short sections, two Scripture quotes, a verse callout, a next step). A safety check then runs. The shipped check is a pass-through. The owner defines the guardrails; this repo does not invent them. The function stores tokens, cost, and the row, and updates `ai_usage`.
+A cache hit on `(profile_hash, topic_key, style_key)` increments `reuse_count` and does not add a generation. Otherwise the provider returns the standard shape (hook, title, two short sections, two Scripture quotes, a verse callout, a next step). The safety check then requires those Scripture references. In Verse mode every quote and the callout must overlap a verse the reader chose. In topic mode the draft needs two quotes with text, and the callout has to be one of those quotes. A draft that fails is not stored and does not count as a generation. No other theology rule is applied.
+
+A generated devotion can include a short help note under the next step. `HELP_NOTE` and `HELP_NOTE_TRIGGERS` configure the sentence and the topic list. When those env vars are unset, the note is the placeholder below and it shows when the topic or a life-situation chip contains health, illness, grief, depression, anxiety, abuse, or self-harm. The wording and the trigger list are pending final approval.
+
+> If you're struggling, please reach out to a pastor, a trusted friend, or a doctor. In the US, call or text 988 any time.
 
 The app calls `generate-devo` when a reader is signed in. With no Supabase session it uses the same fake provider in-process, so the flow runs with no key and no paid call.
 
@@ -265,6 +269,8 @@ npm run typecheck
 | `GENERATION_PROVIDER` | `generate-devo`. Default `fake`. No other provider is implemented. |
 | `WEEKLY_GENERATION_CAP` | `generate-devo`. Placeholder default `5`. Not decided. |
 | `MONTHLY_SPEND_CEILING_USD` | `generate-devo`. Placeholder default `25`. Not decided. |
+| `HELP_NOTE` | `generate-devo`. Help line under the next step. Pending final approval. |
+| `HELP_NOTE_TRIGGERS` | `generate-devo`. Comma-separated topic words that show the help line. Pending final approval. |
 | `ESV_API_KEY` | App (`--dart-define`), Crossway ESV |
 | `API_BIBLE_KEY` | App (`--dart-define`) |
 | `API_BIBLE_ID_NIV` `API_BIBLE_ID_NLT` `API_BIBLE_ID_NKJV` `API_BIBLE_ID_CSB` `API_BIBLE_ID_NASB` | App (`--dart-define`) |
@@ -295,7 +301,7 @@ The APK is written to `build/app/outputs/flutter-apk/app-debug.apk`. iOS is part
 ## Roadmap
 
 1. **Foundation** (this milestone). App shell, sample and Supabase data, verse providers, Notion import, ingest function, local reminder.
-2. **Premium generator.** Personalize is in the app and in `generate-devo`, backed by the fake provider. A real provider, the weekly cap, the monthly ceiling, and the safety guardrails are still open. Local news is not part of this flow.
+2. **Premium generator.** Personalize is in the app and in `generate-devo`, backed by the fake provider. Scripture anchoring is the safety check. A real provider, the weekly cap, the monthly ceiling, and the help-note wording are still open. Local news is not part of this flow.
 3. **Recommendations.** "For You" ranks published and generated devotions with the pgvector embeddings already on `devos` and `generated_devos`, using the reader's tags and life situations.
 4. **Home-screen widget.** `home_widget`, with Android Glance and iOS WidgetKit, showing the featured verse or the next unread devotion.
 5. **Subscriptions.** RevenueCat products mapped onto the `subscriptions` table, gating Create and the widget.
@@ -310,4 +316,4 @@ The app runs on sample data without any of these. Production needs:
 - `INGEST_SHARED_SECRET` for the daily publishing pipeline.
 - An ESV API key from Crossway, and confirmation that the license covers a distributed app.
 - An API.Bible key plus a Bible id for each of NIV, NLT, NKJV, CSB, and NASB. NIV in particular needs the publisher's approval.
-- Product decisions still open: the weekly generation cap, the monthly spend ceiling, price, the safety guardrails for generated text (`generation_notes` stays empty until filled with the service role), the public store name, and which translations ship on day one.
+- Product decisions still open: the weekly generation cap, the monthly spend ceiling, price, the help-note wording and triggers (pending final approval), any further safety rules beyond Scripture anchoring (`generation_notes` stays empty until filled with the service role), the public store name, and which translations ship on day one.

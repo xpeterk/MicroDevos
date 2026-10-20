@@ -1,5 +1,6 @@
 import '../models/generated_devo.dart';
 import '../models/scripture_quote.dart';
+import 'guardrails.dart';
 import 'style_catalog.dart';
 
 /// Placeholder defaults. The weekly cap and the monthly spend ceiling
@@ -92,18 +93,26 @@ class GenerateBlocked {
   final CapSnapshot cap;
 }
 
+class GenerateRejected {
+  const GenerateRejected({required this.reason});
+
+  final String reason;
+}
+
 /// Local stand-in for generate-devo. No network and no model call.
 class PersonalizeEngine {
   PersonalizeEngine({
     required this.config,
     required this.clock,
+    this.helpNotes = const HelpNoteConfig(),
     GenerationProvider? provider,
     SafetyChecker? safety,
   }) : _provider = provider ?? const FakeGenerationProvider(),
-       _safety = safety ?? const PassThroughSafetyChecker();
+       _safety = safety ?? const ScriptureAnchorChecker();
 
   final GenerationCapConfig config;
   final DateTime Function() clock;
+  final HelpNoteConfig helpNotes;
   final GenerationProvider _provider;
   final SafetyChecker _safety;
 
@@ -155,7 +164,12 @@ class PersonalizeEngine {
     }
 
     final draft = _provider.generate(request);
-    final reviewed = await _safety.review(draft);
+    final GenerationDraft reviewed;
+    try {
+      reviewed = await _safety.review(draft, request);
+    } on ScriptureAnchorException catch (error) {
+      return GenerateRejected(reason: error.reason);
+    }
     final style = styleByKey(request.styleKey);
     final devo = GeneratedDevo(
       id: 'gen-$key',
@@ -170,6 +184,11 @@ class PersonalizeEngine {
       styleLabel: style?.label ?? request.styleKey,
       styleKind: style?.kind ?? 'style',
       promptLabel: request.promptLabel,
+      helpNote: helpNoteFor(
+        topic: request.topic,
+        lifeSituations: request.lifeSituations,
+        config: helpNotes,
+      ),
       reuseCount: 0,
     );
     _cache[key] = devo;
@@ -266,6 +285,27 @@ class FakeGenerationProvider implements GenerationProvider {
 
   @override
   GenerationDraft generate(GenerateRequest request) {
+    if (request.verseMode && request.verseRefs.isNotEmpty) {
+      final first = request.verseRefs.first;
+      final second = request.verseRefs.length > 1
+          ? request.verseRefs[1]
+          : first;
+      return GenerationDraft(
+        title: 'Steady Ground on a First Morning',
+        hook: 'Lorem ipsum placeholder hook for a new beginning.',
+        sections: const [
+          'Placeholder section. A real provider will write this reflection later.',
+          'Second placeholder section. No model was called.',
+        ],
+        takeaway: 'Placeholder takeaway: dolor sit amet, one short line of encouragement.',
+        verseText: _placeholderVerse(first),
+        verseRef: first,
+        scriptures: [
+          ScriptureQuote(reference: first, text: _placeholderVerse(first)),
+          ScriptureQuote(reference: second, text: _placeholderVerse(second)),
+        ],
+      );
+    }
     return const GenerationDraft(
       title: 'Steady Ground on a First Morning',
       hook: 'Lorem ipsum placeholder hook for a new beginning.',
@@ -273,16 +313,13 @@ class FakeGenerationProvider implements GenerationProvider {
         'Placeholder section. A real provider will write this reflection later.',
         'Second placeholder section. No model was called.',
       ],
-      takeaway:
-          'Placeholder takeaway: dolor sit amet, one short line of encouragement.',
-      verseText:
-          'Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.',
+      takeaway: 'Placeholder takeaway: dolor sit amet, one short line of encouragement.',
+      verseText: 'Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.',
       verseRef: 'Phil 4:6',
       scriptures: [
         ScriptureQuote(
           reference: 'Philippians 4:6',
-          text:
-              'Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.',
+          text: 'Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.',
         ),
         ScriptureQuote(
           reference: 'Psalm 23:1',
@@ -293,14 +330,51 @@ class FakeGenerationProvider implements GenerationProvider {
   }
 }
 
-abstract class SafetyChecker {
-  Future<GenerationDraft> review(GenerationDraft draft);
+String _placeholderVerse(String reference) {
+  final key = reference.trim().toLowerCase();
+  if (key.startsWith('phil')) {
+    return 'Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God.';
+  }
+  if (key.startsWith('ps')) {
+    return 'The LORD is my shepherd; I shall not want.';
+  }
+  return 'Placeholder verse text.';
 }
 
-/// TODO: the owner defines the guardrails. This check passes every draft through.
-class PassThroughSafetyChecker implements SafetyChecker {
-  const PassThroughSafetyChecker();
+abstract class SafetyChecker {
+  Future<GenerationDraft> review(
+    GenerationDraft draft,
+    GenerateRequest request,
+  );
+}
+
+/// Rejects a draft whose Scripture refs are missing or unrelated.
+/// No other theology rule is applied.
+class ScriptureAnchorChecker implements SafetyChecker {
+  const ScriptureAnchorChecker();
 
   @override
-  Future<GenerationDraft> review(GenerationDraft draft) async => draft;
+  Future<GenerationDraft> review(
+    GenerationDraft draft,
+    GenerateRequest request,
+  ) async {
+    final reason = scriptureAnchorFailure(
+      verseMode: request.verseMode,
+      chosenRefs: request.verseRefs,
+      verseText: draft.verseText,
+      verseRef: draft.verseRef,
+      scriptures: draft.scriptures,
+    );
+    if (reason != null) throw ScriptureAnchorException(reason);
+    return draft;
+  }
+}
+
+class ScriptureAnchorException implements Exception {
+  const ScriptureAnchorException(this.reason);
+
+  final String reason;
+
+  @override
+  String toString() => reason;
 }
