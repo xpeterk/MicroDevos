@@ -7,6 +7,7 @@ import 'package:micro_devos/data/sample/sample_catalog.dart';
 import 'package:micro_devos/data/sample/sample_devo_repository.dart';
 import 'package:micro_devos/data/supabase/supabase_mappers.dart';
 import 'package:micro_devos/domain/edition_calendar.dart';
+import 'package:micro_devos/domain/models/devo.dart';
 import 'package:micro_devos/domain/models/user_preferences.dart';
 
 void main() {
@@ -63,7 +64,7 @@ void main() {
     final sunday = DateTime(2026, 10, 18, 9);
     final resolved = resolveEditionDate(
       today: sunday,
-      editionsNewestFirst: editions,
+      editions: editions,
       selected: null,
     );
     expect(resolved, DateTime(2026, 10, 16));
@@ -73,7 +74,7 @@ void main() {
     );
     final chosen = resolveEditionDate(
       today: sunday,
-      editionsNewestFirst: editions,
+      editions: editions,
       selected: DateTime(2026, 10, 15, 22),
     );
     expect(chosen, DateTime(2026, 10, 15));
@@ -81,6 +82,50 @@ void main() {
       editionIsFallback(today: sunday, edition: chosen!, readerChoseDate: true),
       isFalse,
     );
+  });
+
+  test('today opens 2026-10-19 when that edition exists, even if the list is oldest first', () {
+    final editions = [
+      DateTime(2026, 10, 15),
+      DateTime(2026, 10, 16),
+      DateTime(2026, 10, 19),
+    ];
+    final mondayNight = DateTime(2026, 10, 19, 21);
+    final monday = resolveEditionDate(
+      today: mondayNight,
+      editions: editions,
+      selected: null,
+    );
+    expect(monday, DateTime(2026, 10, 19));
+    expect(
+      editionIsFallback(today: mondayNight, edition: monday!, readerChoseDate: false),
+      isFalse,
+    );
+
+    final tuesday = DateTime(2026, 10, 20, 9);
+    final resolved = resolveEditionDate(
+      today: tuesday,
+      editions: editions,
+      selected: null,
+    );
+    expect(resolved, DateTime(2026, 10, 19));
+    expect(
+      editionIsFallback(today: tuesday, edition: resolved!, readerChoseDate: false),
+      isTrue,
+    );
+  });
+
+  test('edition dates ignore a timezone suffix and archive or read rows stay visible', () {
+    expect(parseDateOnly('2026-10-19'), DateTime(2026, 10, 19));
+    expect(parseDateOnly('2026-10-19T00:00:00.000Z'), DateTime(2026, 10, 19));
+    expect(parseDateOnly('2026-10-19 00:00:00.000Z'), DateTime(2026, 10, 19));
+    expect(isReaderDevoStatus('archive'), isTrue);
+    expect(isReaderDevoStatus('Read'), isTrue);
+    expect(isReaderDevoStatus('unread'), isTrue);
+    expect(isReaderDevoStatus('published'), isTrue);
+    expect(isReaderDevoStatus('Ideas'), isFalse);
+    expect(isReaderDevoStatus('AI-Ideas'), isFalse);
+    expect(readerDevoStatuses, containsAll(['archive', 'read']));
   });
 
   test('a reminder moves to tomorrow once the chosen time has passed', () {

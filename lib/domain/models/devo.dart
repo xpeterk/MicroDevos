@@ -115,12 +115,14 @@ class Devo {
 }
 
 DateTime parseDateOnly(String iso) {
-  final date = iso.split('T').first;
-  final parts = date.split('-');
+  final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(iso.trim());
+  if (match == null) {
+    throw FormatException('Not a calendar date: $iso');
+  }
   return DateTime(
-    int.parse(parts[0]),
-    int.parse(parts[1]),
-    int.parse(parts[2]),
+    int.parse(match.group(1)!),
+    int.parse(match.group(2)!),
+    int.parse(match.group(3)!),
   );
 }
 

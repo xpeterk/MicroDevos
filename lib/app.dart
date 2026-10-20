@@ -12,9 +12,38 @@ class MicroDevosApp extends ConsumerStatefulWidget {
   ConsumerState<MicroDevosApp> createState() => _MicroDevosAppState();
 }
 
-class _MicroDevosAppState extends ConsumerState<MicroDevosApp> {
+class _MicroDevosAppState extends ConsumerState<MicroDevosApp>
+    with WidgetsBindingObserver {
   late final _router = buildRouter();
   UserPreferencesSnapshot? _lastSynced;
+  AppLifecycleState? _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final previous = _lifecycle;
+    _lifecycle = state;
+    if (state != AppLifecycleState.resumed) return;
+    if (previous != AppLifecycleState.paused &&
+        previous != AppLifecycleState.hidden &&
+        previous != AppLifecycleState.inactive) {
+      return;
+    }
+    ref.invalidate(todayProvider);
+    ref.invalidate(archiveProvider);
+    ref.invalidate(editionDatesProvider);
+  }
 
   @override
   Widget build(BuildContext context) {

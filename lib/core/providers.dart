@@ -199,7 +199,7 @@ final todayProvider = FutureProvider<TodaySnapshot>((ref) async {
   final today = ref.watch(clockProvider)();
   final edition = resolveEditionDate(
     today: today,
-    editionsNewestFirst: dates,
+    editions: dates,
     selected: selected,
   );
   final devos = edition == null ? <Devo>[] : await repo.devosForDate(edition);

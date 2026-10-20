@@ -168,15 +168,7 @@ class _StoryScreenState extends ConsumerState<StoryScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'IMAGE PLACEHOLDER',
-                                      style: TextStyle(
-                                        fontFamily: AppTheme.sans,
-                                        fontSize: 10,
-                                        letterSpacing: 0.8,
-                                        color: Colors.white70,
-                                      ),
-                                    ),
+                                    _StoryBanner(devo: devo),
                                     const SizedBox(height: 16),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
@@ -388,6 +380,53 @@ class _StoryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StoryBanner extends StatelessWidget {
+  const _StoryBanner({required this.devo});
+
+  final Devo devo;
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl = devo.imageUrl?.trim();
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return const Text(
+        'IMAGE PLACEHOLDER',
+        style: TextStyle(
+          fontFamily: AppTheme.sans,
+          fontSize: 10,
+          letterSpacing: 0.8,
+          color: Colors.white70,
+        ),
+      );
+    }
+    final label = bannerLabel(devo);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: AspectRatio(
+        aspectRatio: 1200 / 315,
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          semanticLabel: label,
+          errorBuilder: (context, error, stackTrace) => Semantics(
+            label: label,
+            image: true,
+            child: const SizedBox.expand(),
+          ),
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return Semantics(
+              label: label,
+              image: true,
+              child: const SizedBox.expand(),
+            );
+          },
+        ),
       ),
     );
   }

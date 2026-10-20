@@ -1,26 +1,39 @@
 import 'models/devo.dart';
 
+/// Live devotion rows use these statuses. Ideas are not part of the reader catalog.
+/// Matching is case-insensitive. `published` stays so older rows still appear.
+const readerDevoStatuses = ['archive', 'read', 'unread', 'published'];
+
+bool isReaderDevoStatus(String? status) {
+  final normalized = (status ?? '').trim().toLowerCase();
+  if (normalized.isEmpty) return true;
+  return readerDevoStatuses.contains(normalized);
+}
+
 /// Picks which edition Today should open.
 ///
-/// [editionsNewestFirst] is a list of edition dates, newest first. When the
-/// reader has not chosen a date, Today uses the latest edition on or before
-/// [today]. Weekends therefore fall back to Friday.
+/// When the reader has not chosen a date, Today uses the latest edition on or
+/// before the device's local [today], whatever order [editions] arrives in.
+/// A Tuesday with no edition of its own opens Monday. A weekend opens Friday.
 DateTime? resolveEditionDate({
   required DateTime today,
-  required List<DateTime> editionsNewestFirst,
+  required List<DateTime> editions,
   DateTime? selected,
 }) {
   if (selected != null) {
     return DateTime(selected.year, selected.month, selected.day);
   }
-  if (editionsNewestFirst.isEmpty) return null;
+  if (editions.isEmpty) return null;
   final todayDate = DateTime(today.year, today.month, today.day);
-  for (final edition in editionsNewestFirst) {
+  DateTime? latest;
+  DateTime? earliest;
+  for (final edition in editions) {
     final day = DateTime(edition.year, edition.month, edition.day);
-    if (!day.isAfter(todayDate)) return day;
+    if (earliest == null || day.isBefore(earliest)) earliest = day;
+    if (day.isAfter(todayDate)) continue;
+    if (latest == null || day.isAfter(latest)) latest = day;
   }
-  final oldest = editionsNewestFirst.last;
-  return DateTime(oldest.year, oldest.month, oldest.day);
+  return latest ?? earliest;
 }
 
 bool editionIsFallback({

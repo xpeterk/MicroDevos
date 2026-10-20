@@ -54,12 +54,19 @@ class DevoBanner extends StatelessWidget {
                 Image.network(
                   imageUrl,
                   fit: BoxFit.cover,
-                  semanticLabel: _bannerLabel(devo),
-                  errorBuilder: (context, error, stackTrace) =>
-                      _PlaceholderArt(colors: colors),
+                  semanticLabel: bannerLabel(devo),
+                  errorBuilder: (context, error, stackTrace) => Semantics(
+                    label: bannerLabel(devo),
+                    image: true,
+                    child: _PlaceholderArt(colors: colors),
+                  ),
                   loadingBuilder: (context, child, progress) {
                     if (progress == null) return child;
-                    return _PlaceholderArt(colors: colors);
+                    return Semantics(
+                      label: bannerLabel(devo),
+                      image: true,
+                      child: _PlaceholderArt(colors: colors),
+                    );
                   },
                 )
               else ...[
@@ -125,7 +132,7 @@ class DevoBanner extends StatelessWidget {
   }
 }
 
-String _bannerLabel(Devo devo) {
+String bannerLabel(Devo devo) {
   final alt = devo.imageAlt?.trim();
   if (alt != null && alt.isNotEmpty) return alt;
   return devo.title;
@@ -162,7 +169,6 @@ class _PlaceholderArt extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.28),
           ),
         ),
-        const Positioned(top: 16, right: 16, child: _PlaceholderPill()),
       ],
     );
   }

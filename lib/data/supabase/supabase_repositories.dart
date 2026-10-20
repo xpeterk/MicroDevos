@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
+import '../../domain/edition_calendar.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/models/user_preferences.dart';
 import '../../domain/repositories/repositories.dart';
@@ -17,7 +18,12 @@ class SupabaseDevoRepository implements DevoRepository {
 
   @override
   Future<Devo?> devoById(String id) async {
-    final row = await _client.from('devos').select(_columns).eq('id', id).maybeSingle();
+    final row = await _client
+        .from('devos')
+        .select(_columns)
+        .eq('id', id)
+        .inFilter('status', readerDevoStatuses)
+        .maybeSingle();
     if (row == null) return null;
     return devoFromRow(row);
   }
@@ -28,13 +34,19 @@ class SupabaseDevoRepository implements DevoRepository {
         .from('devos')
         .select(_columns)
         .eq('edition_date', dateKeyOf(date))
+        .inFilter('status', readerDevoStatuses)
         .order('position');
     return rows.map(devoFromRow).toList();
   }
 
   @override
   Future<List<DateTime>> editionDates() async {
-    final rows = await _client.from('devos').select('edition_date').order('edition_date', ascending: false);
+    final rows = await _client
+        .from('devos')
+        .select('edition_date')
+        .inFilter('status', readerDevoStatuses)
+        .order('edition_date', ascending: false)
+        .limit(5000);
     final dates = <String, DateTime>{};
     for (final row in rows) {
       final raw = row['edition_date'];
@@ -42,12 +54,13 @@ class SupabaseDevoRepository implements DevoRepository {
       final date = parseDateOnly(raw.toString());
       dates[dateKeyOf(date)] = date;
     }
-    return dates.values.toList();
+    final list = dates.values.toList()..sort((a, b) => b.compareTo(a));
+    return list;
   }
 
   @override
   Future<List<Devo>> search({String text = '', DateTime? date}) async {
-    var filter = _client.from('devos').select(_columns);
+    var filter = _client.from('devos').select(_columns).inFilter('status', readerDevoStatuses);
     if (date != null) {
       filter = filter.eq('edition_date', dateKeyOf(date));
     }

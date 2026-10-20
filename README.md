@@ -28,7 +28,7 @@ Screens:
 
 | Route | What it does |
 | --- | --- |
-| `/` | Today feed: a story row for the edition, a pinned filter bar, and one post per devotion. Weekends open the latest weekday edition. |
+| `/` | Today feed: a story row for the edition, a pinned filter bar, and one post per devotion. Today opens the latest edition on or before the device's local date, including rows whose status is archive, read, unread, or published. A day with no edition of its own, including a weekend, shows that latest weekday edition. Returning to the app loads the catalog again. |
 | `/story/:id` | Full-screen story for that devotion. Tap either side, or swipe up for the full page. |
 | `/devo/:id` | Full devotion, share card, favorite toggle. |
 | `/archive` | Search plus date chips. |
@@ -72,7 +72,7 @@ A new auth user gets a `profiles` row and a `preferences` row from a trigger.
 
 `supabase/migrations/20261018000002_feed_notes_and_images.sql` adds two things on top of the foundation schema:
 
-- `devos.image_url` is nullable text. Sample devotions leave it null. The feed card paints that image when the URL is set, and the gradient placeholder when it is null.
+- `devos.image_url` is nullable text. Sample devotions leave it null. The feed card paints that image, including a Substack CDN URL, when it is set, and uses `image_alt` as the accessibility label. The gradient placeholder, including the words IMAGE PLACEHOLDER, is only for a null URL.
 - `supabase/migrations/20261020000004_image_alt.sql` adds nullable `devos.image_alt`. The banner step is the only writer of `image_url` and `image_alt`. It does not change devotion text.
 - `notes` stores a private note on exactly one of `devo_id` or `generated_devo_id`. Columns are `body`, optional `anchor_text`, `anchor_start`, `anchor_end`, and a `section` key (`hook`, `body`, `takeaway`, `verse`, `scripture`) so a highlight can be found again after a re-render. A null section attaches the note to the whole devotion. Row-level security lets a signed-in reader select, insert, update, and delete only their own rows.
 
