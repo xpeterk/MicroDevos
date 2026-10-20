@@ -32,18 +32,21 @@ async function main() {
   const limit = limitFlag >= 0 ? Number(args[limitFlag + 1]) : Infinity;
   const fixtureFlag = args.indexOf("--fixture");
   const fixturePath = fixtureFlag >= 0 ? args[fixtureFlag + 1] : undefined;
-  const rss = args.includes("--rss");
   const imagesOnly = args.includes("--images-only");
+  // --images-only still reads the feed so blank Banner properties can fall back.
+  const rss = args.includes("--rss") || imagesOnly;
   const rssFixtureFlag = args.indexOf("--rss-fixture");
   const rssFixturePath = rssFixtureFlag >= 0 ? args[rssFixtureFlag + 1] : undefined;
   const rssUrlFlag = args.indexOf("--rss-url");
   const rssUrl = rssUrlFlag >= 0 ? args[rssUrlFlag + 1] : undefined;
   // A dry run of --rss, with no card fixture, reads the feed only.
-  // npm run import -- --rss still imports Notion text, then sets banner columns.
-  const withNotion = !imagesOnly && (Boolean(fixturePath) || args.includes("--with-notion") || !rss || !dryRun);
+  // --images-only reads Notion banners and headings, then updates image columns only.
+  const rssOnlyDryRun =
+    rss && dryRun && !fixturePath && !args.includes("--with-notion") && !imagesOnly;
+  const loadNotion = !rssOnlyDryRun;
 
   let imported: ImportedDevo[] | undefined;
-  if (withNotion) {
+  if (loadNotion) {
     const cards = fixturePath
       ? await loadFixtureCards(path.resolve(fixturePath))
       : await cardsFromNotion(limit);
@@ -52,6 +55,7 @@ async function main() {
       embedding: new DisabledEmbeddingProvider(),
     });
     imported = plan.imported;
+    logBannerWarnings(plan.bannerWarnings);
 
     if (dryRun) {
       await mkdir(path.dirname(path.resolve(outPath)), { recursive: true });
@@ -59,13 +63,17 @@ async function main() {
       console.log(
         `Dry run: ${plan.imported.length} devotions, ${plan.skipped.length} skipped, wrote ${outPath}`,
       );
-    } else {
+    } else if (!imagesOnly) {
       await upsertNotionRows(plan.imported, plan.skipped.length);
+    } else {
+      console.log(
+        `Read ${plan.imported.length} devotions for banner columns. Skipped ${plan.skipped.length}. Text was not written.`,
+      );
     }
   }
 
   if (rss) {
-    const reportPath = rssReportPath(args, outPath, withNotion);
+    const reportPath = rssReportPath(args, outPath, loadNotion);
     await runRssStep({
       dryRun,
       fixturePath: rssFixturePath ? path.resolve(rssFixturePath) : undefined,
@@ -167,6 +175,22 @@ async function runRssStep(options: {
     }
   }
   console.log(`Set image_url and image_alt on ${written} devotions. Notion text was not changed.`);
+  const counts = await countImageRows(supabase);
+  console.log(`image_url filled ${counts.filled}, null ${counts.empty}`);
+}
+
+async function countImageRows(supabase: SupabaseClient): Promise<{ filled: number; empty: number }> {
+  const filled = await supabase
+    .from("devos")
+    .select("id", { count: "exact", head: true })
+    .not("image_url", "is", null);
+  if (filled.error) throw filled.error;
+  const empty = await supabase
+    .from("devos")
+    .select("id", { count: "exact", head: true })
+    .is("image_url", null);
+  if (empty.error) throw empty.error;
+  return { filled: filled.count ?? 0, empty: empty.count ?? 0 };
 }
 
 async function writeBanner(supabase: SupabaseClient, update: BannerUpdate): Promise<number> {

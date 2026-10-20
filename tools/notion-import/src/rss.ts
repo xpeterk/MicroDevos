@@ -4,6 +4,8 @@
  * only. It never builds a hook, body, takeaway, or verse from RSS text.
  */
 
+import { stripDevotionPrefix } from "./notion.js";
+
 export const DEFAULT_RSS_URL = "https://microdevotionals.substack.com/feed";
 
 export const BANNER_POSITIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
@@ -336,7 +338,6 @@ function bannersFromHtml(html: string, warnings: string[]): ParsedBanner[] {
   const images = [...html.matchAll(/<img\b[^>]*>/gi)].map((match) => readImage(match[0]));
   const banners: ParsedBanner[] = [];
   const used = new Set<number>();
-  const unlabeled: FeedImage[] = [];
 
   for (const image of images) {
     if (isCover(image)) continue;
@@ -347,7 +348,7 @@ function bannersFromHtml(html: string, warnings: string[]): ParsedBanner[] {
       continue;
     }
     if (!labeled) {
-      unlabeled.push(image);
+      warnings.push("skipped a shared header; it is not a per-devo banner");
       continue;
     }
     const position = Number(labeled[1]);
@@ -365,22 +366,7 @@ function bannersFromHtml(html: string, warnings: string[]): ParsedBanner[] {
       position,
       title,
       imageUrl: image.src,
-      imageAlt: image.alt.trim(),
-    });
-  }
-
-  for (const image of unlabeled) {
-    const position = BANNER_POSITIONS.find((slot) => !used.has(slot));
-    if (!position) {
-      warnings.push(`extra image had no free position: ${image.src}`);
-      continue;
-    }
-    used.add(position);
-    banners.push({
-      position,
-      title: "",
-      imageUrl: image.src,
-      imageAlt: image.alt.trim(),
+      imageAlt: stripDevotionPrefix(image.alt) ?? image.alt.trim(),
     });
   }
 

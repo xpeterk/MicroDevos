@@ -5,7 +5,17 @@ import {
   type EmbeddingProvider,
   type TaggingProvider,
 } from "./enrichment.js";
-import { readBannerAlt, readBannerUrl, readDate, readStars, readStatus, readTitle, readUrl } from "./notion.js";
+import {
+  bannerPositionWarning,
+  readBannerAlt,
+  readBannerUrl,
+  readDate,
+  readStars,
+  readStatus,
+  readTitle,
+  readUrl,
+  stripDevotionPrefix,
+} from "./notion.js";
 import { decide, parseDevoMarkdown } from "./parse.js";
 import type { ParsedDevo } from "./types.js";
 
@@ -31,6 +41,7 @@ export type ImportedDevo = ParsedDevo & {
 export type ImportPlan = {
   imported: ImportedDevo[];
   skipped: SkippedCard[];
+  bannerWarnings: string[];
 };
 
 export async function planImport(
@@ -46,6 +57,7 @@ export async function planImport(
   const catalog = options.catalog ?? SEED_TAG_SLUGS;
   const imported: ImportedDevo[] = [];
   const skipped: SkippedCard[] = [];
+  const bannerWarnings: string[] = [];
 
   for (const card of cards) {
     const title = readTitle(card.properties);
@@ -80,8 +92,17 @@ export async function planImport(
     }
 
     const notionBannerUrl = readBannerUrl(card.properties);
-    const notionBannerAlt = readBannerAlt(card.properties);
+    const rawBannerAlt = readBannerAlt(card.properties);
+    const notionBannerAlt = stripDevotionPrefix(rawBannerAlt);
+    const editionDate = readDate(card.properties);
     for (const devo of devos) {
+      const mismatch = bannerPositionWarning({
+        headingPosition: devo.position,
+        title: devo.title,
+        editionDate,
+        alt: rawBannerAlt,
+      });
+      if (mismatch) bannerWarnings.push(mismatch);
       const text = [devo.title, devo.hook, devo.body_md, devo.takeaway].join("\n");
       imported.push({
         ...devo,
@@ -93,7 +114,7 @@ export async function planImport(
     }
   }
 
-  return { imported, skipped };
+  return { imported, skipped, bannerWarnings };
 }
 
 export function toUpsertRows(imported: ImportedDevo[]) {

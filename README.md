@@ -259,11 +259,11 @@ npm run typecheck
 
 ### Banner images from the edition feed
 
-Notion stays the source for the hook, body, takeaway, and Scripture. Each card may also have a `Banner` property (a URL, or a Files property) and `Banner Alt` text. Those properties are optional: until they exist, the reader treats them as empty.
+Notion stays the source for the hook, body, takeaway, and Scripture. Each card may also have a `Banner` property (a URL, or a Files property) and `Banner Alt` text. A missing or blank property is treated as empty. Cards have no position column. Position is the `## N · …` heading in the body. `Banner Alt` often starts with `Devotion N:`; the importer checks that number against the heading, warns when they differ, and still keeps the heading. The stored alt drops that prefix.
 
-`--rss` is an optional second step. It reads the public Substack feed, matches each post to the edition date in its title, and finds the per-devotion banner (the Substack CDN `src`, plus the image alt). The first image in a post is the edition cover and is skipped. The next images are matched to positions 1–8 by the `Devotion N:` label, or by image order when a label is missing. A unique title match wins over that position.
+`--rss` is an optional second step. It reads the public Substack feed, matches each post to the edition date in its title, and finds per-devotion banners (the Substack CDN `src`, plus the image alt). Only images whose alt starts with `Devotion N:` are devotion banners. The edition cover and any other shared header are skipped, including a post that has only one header image. A unique title match wins over the heading position.
 
-For each devotion the banner step chooses the image in this order: the Notion `Banner` and `Banner Alt`, then the RSS match, then null. A Notion URL is kept even when the feed has a different image for that position. Running it again writes the same values. If neither source has an image, `image_url` stays null and the command logs a warning. RSS prose is never copied into the devotion text columns.
+For each devotion the banner step chooses the image in this order: the Notion `Banner` and `Banner Alt`, then a labeled RSS image, then null. A Notion URL is kept even when the feed has a different image for that position. Editions whose cards have a blank `Banner` use the RSS image when one is labeled for that devotion, and stay null when the post has only a shared header. Running it again writes the same values. If neither source has an image, `image_url` stays null and the command logs a warning. RSS prose is never copied into the devotion text columns.
 
 ```bash
 cd tools/notion-import
@@ -272,7 +272,7 @@ npm run import -- --rss --images-only
 npm run import -- --rss
 ```
 
-`--rss --dry-run` without a card fixture only reads the feed and writes `out/rss-banners.json`. It does not need a Notion token or Supabase. `--rss-fixture fixtures/substack-feed.xml` uses the saved feed instead of the network. `--rss` without `--dry-run` imports Notion cards first, then sets banner columns. `--images-only` sets banners for rows already in Supabase and does not read Notion. `RSS_FEED_URL` overrides the default feed, `https://microdevotionals.substack.com/feed`.
+`--rss --dry-run` without a card fixture only reads the feed and writes `out/rss-banners.json`. It does not need a Notion token or Supabase. `--rss-fixture fixtures/substack-feed.xml` uses the saved feed instead of the network. `--rss` without `--dry-run` imports Notion cards first, then sets banner columns. `--images-only` reads Notion for `Banner`, `Banner Alt`, and the heading, then updates only `image_url` and `image_alt` on existing rows. It does not upsert devotion text. `RSS_FEED_URL` overrides the default feed, `https://microdevotionals.substack.com/feed`.
 
 ## Environment variables
 

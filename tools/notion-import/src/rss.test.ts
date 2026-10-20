@@ -46,7 +46,8 @@ test("parses the saved feed fixture into per-devo banners", () => {
   assert.equal(banner.title, "The Week the Leaders Called Home");
   assert.match(banner.imageUrl, /^https:\/\/substackcdn\.com\/image\/fetch\//);
   assert.match(banner.imageUrl, /7615f705-2bcc-479c-aef4-0188288a5c42_1200x315\.png/);
-  assert.match(banner.imageAlt, /^Devotion 1: The Week the Leaders Called Home\./);
+  assert.match(banner.imageAlt, /^The Week the Leaders Called Home\. FORGIVENESS/);
+  assert.equal(banner.imageAlt.startsWith("Devotion"), false);
   assert.equal(edition.banners[2].title, "The Button He Had Never Pressed");
   assert.match(edition.banners[2].imageAlt, /God\u2019s answer/);
   assert.equal(
@@ -281,7 +282,8 @@ test("a missing notion banner falls back to the rss match", () => {
   const update = plan.updates[0];
   assert.equal(update.matchedBy, "position");
   assert.match(update.imageUrl!, /7615f705-2bcc-479c-aef4-0188288a5c42/);
-  assert.match(update.imageAlt!, /^Devotion 1: The Week the Leaders Called Home\./);
+  assert.match(update.imageAlt!, /^The Week the Leaders Called Home\./);
+  assert.equal(update.imageAlt!.startsWith("Devotion"), false);
   assert.equal(plan.warnings.some((warning) => warning.includes("left null")), false);
 });
 
@@ -305,6 +307,102 @@ test("no notion banner and no rss match leaves the image null", () => {
     logged.some(
       (message) => message.startsWith("warning:") && message.includes("image_url left null"),
     ),
+  );
+});
+
+test("a matching Banner Alt prefix is stripped, and a mismatch keeps the heading", async () => {
+  const cards = await loadFixtureCards(cardsPath);
+  const base = cards[0];
+  const alt = {
+    type: "rich_text",
+    rich_text: [{ plain_text: "Devotion 3: A still morning. HOPE · 1-min read. Rest here." }],
+  };
+  const matching = await planImport([
+    {
+      ...base,
+      properties: {
+        ...base.properties,
+        Banner: { type: "url", url: "https://example.com/notion-banner.png" },
+        "Banner Alt": alt,
+      },
+    },
+  ]);
+  assert.equal(matching.bannerWarnings.length, 0);
+  assert.equal(matching.imported[0].position, 3);
+  assert.equal(matching.imported[0].title, "A Refuge That Does Not Move");
+  assert.equal(matching.imported[0].notion_banner_alt, "A still morning. HOPE · 1-min read. Rest here.");
+
+  const mismatched = await planImport([
+    {
+      ...base,
+      properties: {
+        ...base.properties,
+        Banner: { type: "url", url: "https://example.com/notion-banner.png" },
+        "Banner Alt": {
+          type: "rich_text",
+          rich_text: [{ plain_text: "Devotion 1: A still morning. HOPE · 1-min read. Rest here." }],
+        },
+      },
+    },
+  ]);
+  const devo = mismatched.imported[0];
+  assert.equal(devo.position, 3);
+  assert.equal(devo.notion_banner_url, "https://example.com/notion-banner.png");
+  assert.equal(devo.notion_banner_alt, "A still morning. HOPE · 1-min read. Rest here.");
+  assert.equal(mismatched.bannerWarnings.length, 1);
+  assert.match(mismatched.bannerWarnings[0], /banner alt says Devotion 1 but the heading is 3/);
+  assert.match(mismatched.bannerWarnings[0], /using the heading/);
+
+  const plan = matchBanners(parseRssFeed(feedXml), [
+    {
+      editionDate: "2026-10-16",
+      position: devo.position,
+      title: devo.title,
+      notionBannerUrl: devo.notion_banner_url,
+      notionBannerAlt: devo.notion_banner_alt,
+    },
+  ]);
+  assert.equal(plan.updates.length, 1);
+  assert.equal(plan.updates[0].position, 3);
+  assert.equal(plan.updates[0].imageUrl, "https://example.com/notion-banner.png");
+  assert.equal(plan.updates[0].imageAlt, "A still morning. HOPE · 1-min read. Rest here.");
+  assert.equal(plan.updates[0].matchedBy, "notion");
+});
+
+test("a shared header is not a devotion banner", () => {
+  const xml = `<?xml version="1.0"?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel>
+<item>
+<title>Micro Devos · Monday, September 28, 2026</title>
+<link>https://microdevotionals.substack.com/p/sep-28</link>
+<pubDate>Mon, 28 Sep 2026 12:00:00 +0000</pubDate>
+<content:encoded><![CDATA[
+<img src="https://substackcdn.com/image/fetch/$s_!cover!/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fcover_1200x630.png" width="1200" height="630" alt="">
+<img src="https://substackcdn.com/image/fetch/$s_!hdr!/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fshared_header.png" width="1200" height="400" alt="This week's edition">
+]]></content:encoded>
+</item>
+</channel></rss>`;
+  const [edition] = parseRssFeed(xml);
+  assert.equal(edition.editionDate, "2026-09-28");
+  assert.equal(edition.banners.length, 0);
+  assert.ok(edition.warnings.some((warning) => warning === "skipped a shared header; it is not a per-devo banner"));
+  const plan = matchBanners([edition], [
+    {
+      editionDate: "2026-09-28",
+      position: 1,
+      title: "A Monday devotion",
+      notionBannerUrl: null,
+      notionBannerAlt: null,
+    },
+  ]);
+  assert.equal(plan.updates.length, 1);
+  assert.equal(plan.updates[0].position, 1);
+  assert.equal(plan.updates[0].imageUrl, null);
+  assert.equal(plan.updates[0].imageAlt, null);
+  assert.equal(plan.updates[0].matchedBy, null);
+  assert.equal(
+    plan.updates.some((update) => (update.imageUrl ?? "").includes("shared_header")),
+    false,
   );
 });
 

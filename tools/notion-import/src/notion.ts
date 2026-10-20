@@ -154,6 +154,42 @@ export function readBannerUrl(properties: Record<string, unknown> | null | undef
   return null;
 }
 
+const devotionPrefix = /^Devotion\s+(\d+)\s*:\s*/i;
+
+/** The "Devotion N:" prefix on Banner Alt, when the text has one. */
+export function bannerAltPosition(alt: string | null | undefined): number | null {
+  const text = presentText(alt);
+  if (!text) return null;
+  const match = devotionPrefix.exec(text);
+  if (!match) return null;
+  const position = Number(match[1]);
+  return position >= 1 && position <= 8 ? position : null;
+}
+
+/** Drop "Devotion N:" so the stored alt starts with the devotion title. */
+export function stripDevotionPrefix(alt: string | null | undefined): string | null {
+  const text = presentText(alt);
+  if (!text) return null;
+  const stripped = text.replace(devotionPrefix, "").trim();
+  return stripped || null;
+}
+
+/**
+ * Position comes from the "## N · …" heading. Banner Alt's prefix is a check.
+ * A mismatch keeps the heading and returns a warning.
+ */
+export function bannerPositionWarning(input: {
+  headingPosition: number;
+  title: string;
+  editionDate?: string | null;
+  alt: string | null | undefined;
+}): string | null {
+  const fromAlt = bannerAltPosition(input.alt);
+  if (fromAlt == null || fromAlt === input.headingPosition) return null;
+  const when = input.editionDate ? `, ${input.editionDate}` : "";
+  return `banner alt says Devotion ${fromAlt} but the heading is ${input.headingPosition} ("${input.title}"${when}); using the heading`;
+}
+
 /** Banner Alt is optional rich text. A missing property returns null. */
 export function readBannerAlt(properties: Record<string, unknown> | null | undefined): string | null {
   if (!properties) return null;
