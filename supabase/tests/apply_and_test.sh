@@ -21,6 +21,7 @@ sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/tests/p
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/migrations/20261018000001_init.sql"
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/migrations/20261018000002_feed_notes_and_images.sql"
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/migrations/20261019000003_personalize.sql"
+sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/migrations/20261020000004_image_alt.sql"
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/tests/rls_test.sql"
 echo "Migrations applied from a clean database and RLS checks passed (${DB})."
 

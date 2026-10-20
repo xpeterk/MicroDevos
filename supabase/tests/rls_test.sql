@@ -32,6 +32,17 @@ begin
     raise exception 'devos.image_url is missing or not nullable';
   end if;
 
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'devos'
+      and column_name = 'image_alt'
+      and is_nullable = 'YES'
+  ) then
+    raise exception 'devos.image_alt is missing or not nullable';
+  end if;
+
   insert into auth.users (id, email) values
     (user_a, 'reader-a@example.com'),
     (user_b, 'reader-b@example.com');

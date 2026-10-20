@@ -56,7 +56,7 @@ Repository interfaces live in `lib/domain/repositories`. `AppConfig` chooses the
 
 `supabase/migrations/20261018000001_init.sql` creates:
 
-- `devos` (including nullable `image_url`), `tags`, `devo_tags`
+- `devos` (including nullable `image_url` and `image_alt`), `tags`, `devo_tags`
 - `profiles` (optional location and `location_consent_at`)
 - `preferences` (`age_range`, `sex`, `life_situations[]`, `bible_versions[]`, `tags[]`, `notify_time`, plus widget and embedding columns reserved for later milestones)
 - `generated_devos`, `favorites`, `notes`, `subscriptions`, `ai_usage`
@@ -73,6 +73,7 @@ A new auth user gets a `profiles` row and a `preferences` row from a trigger.
 `supabase/migrations/20261018000002_feed_notes_and_images.sql` adds two things on top of the foundation schema:
 
 - `devos.image_url` is nullable text. Sample devotions leave it null. The feed paints a gradient placeholder and does not load a remote image.
+- `supabase/migrations/20261020000004_image_alt.sql` adds nullable `devos.image_alt`. The optional RSS step below is the only writer. It sets `image_url` and `image_alt` and does not change devotion text.
 - `notes` stores a private note on exactly one of `devo_id` or `generated_devo_id`. Columns are `body`, optional `anchor_text`, `anchor_start`, `anchor_end`, and a `section` key (`hook`, `body`, `takeaway`, `verse`, `scripture`) so a highlight can be found again after a re-render. A null section attaches the note to the whole devotion. Row-level security lets a signed-in reader select, insert, update, and delete only their own rows.
 
 With no Supabase session, likes and notes stay in `SharedPreferences`. Signing in syncs favorites through the existing table and pushes notes whose target id is a uuid. Personalized devotions saved on this phone stay in `SharedPreferences` under Mine until a signed-in reader saves them to `public.mine`.
@@ -256,6 +257,21 @@ npm run typecheck
 
 `--dry-run` writes `{ imported, skipped }` JSON and does not touch Supabase. The same parser rules are covered by Dart tests in `test/notion_parser_test.dart` and by `src/parse.test.ts` and `src/pipeline.test.ts`. Node 20 or newer is enough for the importer.
 
+### Banner images from the edition feed
+
+Notion stays the source for the hook, body, takeaway, and Scripture. `--rss` is an optional second step. It reads the public Substack feed, matches each post to the edition date in its title, and finds the per-devotion banner (the Substack CDN `src`, plus the image alt). The first image in a post is the edition cover and is skipped. The next images are matched to positions 1–8 by the `Devotion N:` label, or by image order when a label is missing. A unique title match wins over that position when the feed is applied to rows already imported from Notion.
+
+The step updates only `devos.image_url` and `devos.image_alt`. Running it again writes the same values. If a position has no banner, the value stays null and the command logs a warning. RSS prose is never copied into the devotion text columns.
+
+```bash
+cd tools/notion-import
+npm run import -- --rss --dry-run
+npm run import -- --rss --images-only
+npm run import -- --rss
+```
+
+`--rss --dry-run` without a card fixture only reads the feed and writes `out/rss-banners.json`. It does not need a Notion token or Supabase. `--rss-fixture fixtures/substack-feed.xml` uses the saved feed instead of the network. `--rss` without `--dry-run` imports Notion cards first, then sets banner columns. `--images-only` sets banners for rows already in Supabase and does not read Notion. `RSS_FEED_URL` overrides the default feed, `https://microdevotionals.substack.com/feed`.
+
 ## Environment variables
 
 | Name | Used by |
@@ -265,6 +281,7 @@ npm run typecheck
 | `SUPABASE_SERVICE_ROLE_KEY` | Notion importer only. Never ship this in the app. |
 | `NOTION_TOKEN` | Notion importer |
 | `NOTION_DATA_SOURCE_ID` | Importer. Defaults to Micro Devos Cards. |
+| `RSS_FEED_URL` | Optional banner step. Defaults to `https://microdevotionals.substack.com/feed`. |
 | `INGEST_SHARED_SECRET` | `ingest-devos` edge function. Not used by the app. |
 | `GENERATION_PROVIDER` | `generate-devo`. Default `fake`. No other provider is implemented. |
 | `WEEKLY_GENERATION_CAP` | `generate-devo`. Placeholder default `5`. Not decided. |
@@ -284,7 +301,7 @@ flutter analyze
 flutter test
 ```
 
-`flutter test` covers the Notion body parser (including the verse-box card), the sample repository (search, dates, share text, favorites, preferences), Bible-version selection, KJV lookup, the embedding and tagging providers, the Personalize cap and cache, and a check that reader-facing style labels do not contain a person's name. The importer's TypeScript parser and fixture import are tested with `npm test` inside `tools/notion-import`. Database checks, including the grant that hides `generation_notes` from anonymous readers:
+`flutter test` covers the Notion body parser (including the verse-box card), the sample repository (search, dates, share text, favorites, preferences), Bible-version selection, KJV lookup, the embedding and tagging providers, the Personalize cap and cache, and a check that reader-facing style labels do not contain a person's name. The importer's TypeScript parser, fixture import, and saved Substack feed fixture are tested with `npm test` inside `tools/notion-import`. Database checks, including the grant that hides `generation_notes` from anonymous readers:
 
 ```bash
 bash supabase/tests/apply_and_test.sh
