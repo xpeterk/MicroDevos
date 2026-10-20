@@ -130,11 +130,58 @@ export function readUrl(properties: Record<string, unknown>): string | null {
   return url?.url ?? null;
 }
 
+/**
+ * Banner is optional. The property is absent until it is added to the database,
+ * and it may be either a URL property or a Files property.
+ * Missing, null, and blank all mean "no Notion banner".
+ */
+export function readBannerUrl(properties: Record<string, unknown> | null | undefined): string | null {
+  if (!properties) return null;
+  const banner = properties.Banner ?? properties.banner;
+  if (!banner || typeof banner !== "object") return null;
+  const record = banner as Record<string, unknown>;
+  const direct = presentText(record.url);
+  if (direct) return direct;
+  if (!Array.isArray(record.files)) return null;
+  for (const file of record.files) {
+    if (!file || typeof file !== "object") continue;
+    const item = file as Record<string, unknown>;
+    const external = item.external as { url?: unknown } | undefined;
+    const hosted = item.file as { url?: unknown } | undefined;
+    const url = presentText(external?.url) ?? presentText(hosted?.url) ?? presentText(item.url);
+    if (url) return url;
+  }
+  return null;
+}
+
+/** Banner Alt is optional rich text. A missing property returns null. */
+export function readBannerAlt(properties: Record<string, unknown> | null | undefined): string | null {
+  if (!properties) return null;
+  const banner = properties["Banner Alt"] ?? properties.banner_alt;
+  if (!banner || typeof banner !== "object") return null;
+  const rich = (banner as { rich_text?: unknown }).rich_text;
+  if (!Array.isArray(rich)) return null;
+  const text = rich
+    .map((part) => {
+      if (!part || typeof part !== "object") return "";
+      return presentText((part as { plain_text?: unknown }).plain_text) ?? "";
+    })
+    .join("")
+    .trim();
+  return text || null;
+}
+
 export function readStars(properties: Record<string, unknown>): number | null {
   const name = selectName(properties.Stars);
   if (!name) return null;
   const count = name.match(/★/g)?.length ?? 0;
   return count || null;
+}
+
+function presentText(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
 }
 
 function selectName(value: unknown): string | null {

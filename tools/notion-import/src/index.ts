@@ -86,7 +86,13 @@ function rssReportPath(args: string[], outPath: string, withNotion: boolean): st
 function slotsFromImported(imported: ImportedDevo[]): DevoSlot[] {
   return imported.flatMap((devo) =>
     devo.edition_date
-      ? [{ editionDate: devo.edition_date, position: devo.position, title: devo.title }]
+      ? [{
+          editionDate: devo.edition_date,
+          position: devo.position,
+          title: devo.title,
+          notionBannerUrl: devo.notion_banner_url,
+          notionBannerAlt: devo.notion_banner_alt,
+        }]
       : [],
   );
 }

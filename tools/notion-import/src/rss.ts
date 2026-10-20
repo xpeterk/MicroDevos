@@ -62,6 +62,9 @@ export type DevoSlot = {
   editionDate: string;
   position: number;
   title: string;
+  /** From the card's Banner property. Null when the property is missing or empty. */
+  notionBannerUrl?: string | null;
+  notionBannerAlt?: string | null;
 };
 
 export type BannerUpdate = {
@@ -69,7 +72,7 @@ export type BannerUpdate = {
   position: number;
   imageUrl: string | null;
   imageAlt: string | null;
-  matchedBy: "title" | "position" | null;
+  matchedBy: "notion" | "title" | "position" | null;
 };
 
 export type BannerPlan = {
@@ -168,64 +171,81 @@ export function matchBanners(editions: ParsedEdition[], devos: DevoSlot[] = []):
 
   for (const [editionDate, rows] of grouped) {
     const edition = editionsByDate.get(editionDate);
-    if (!edition) continue;
+    if (!edition) {
+      for (const devo of rows) {
+        if (!present(devo.notionBannerUrl) && !present(devo.notionBannerAlt)) continue;
+        updates.push(resolveDevoBanner(editionDate, undefined, devo, new Set(), warnings));
+      }
+      continue;
+    }
     const remaining = new Set(edition.banners);
-    const chosen = new Map<DevoSlot, { banner: ParsedBanner; matchedBy: "title" | "position" }>();
-
     for (const devo of rows) {
-      const titleKey = normalizeTitle(devo.title);
-      if (!titleKey) continue;
-      const hits = edition.banners.filter(
-        (banner) => remaining.has(banner) && normalizeTitle(banner.title) === titleKey,
-      );
-      if (hits.length > 1) {
-        warnings.push(
-          `title "${devo.title}" matched ${hits.length} banners on ${editionDate}; using position`,
-        );
-        continue;
-      }
-      if (hits.length === 1) {
-        chosen.set(devo, { banner: hits[0], matchedBy: "title" });
-        remaining.delete(hits[0]);
-      }
-    }
-
-    for (const devo of rows) {
-      if (chosen.has(devo)) continue;
-      const banner = edition.banners.find(
-        (candidate) => remaining.has(candidate) && candidate.position === devo.position,
-      );
-      if (!banner) {
-        warnings.push(
-          `no banner match for ${editionDate} position ${devo.position} ("${devo.title}"); image_url left null`,
-        );
-        updates.push({
-          editionDate,
-          position: devo.position,
-          imageUrl: null,
-          imageAlt: null,
-          matchedBy: null,
-        });
-        continue;
-      }
-      chosen.set(devo, { banner, matchedBy: "position" });
-      remaining.delete(banner);
-    }
-
-    for (const devo of rows) {
-      const hit = chosen.get(devo);
-      if (!hit) continue;
-      updates.push({
-        editionDate,
-        position: devo.position,
-        imageUrl: hit.banner.imageUrl,
-        imageAlt: hit.banner.imageAlt,
-        matchedBy: hit.matchedBy,
-      });
+      updates.push(resolveDevoBanner(editionDate, edition, devo, remaining, warnings));
     }
   }
 
   return { updates, warnings };
+}
+
+function resolveDevoBanner(
+  editionDate: string,
+  edition: ParsedEdition | undefined,
+  devo: DevoSlot,
+  remaining: Set<ParsedBanner>,
+  warnings: string[],
+): BannerUpdate {
+  const notionUrl = present(devo.notionBannerUrl);
+  const notionAlt = present(devo.notionBannerAlt);
+  const rss = edition ? rssBannerFor(edition, devo, remaining, warnings, notionUrl == null) : undefined;
+  const imageUrl = notionUrl ?? rss?.banner.imageUrl ?? null;
+  const imageAlt = notionAlt ?? rss?.banner.imageAlt ?? null;
+  if (!imageUrl) {
+    warnings.push(
+      `no banner match for ${editionDate} position ${devo.position} ("${devo.title}"); image_url left null`,
+    );
+  }
+  return {
+    editionDate,
+    position: devo.position,
+    imageUrl,
+    imageAlt,
+    matchedBy: notionUrl ? "notion" : rss?.matchedBy ?? null,
+  };
+}
+
+function rssBannerFor(
+  edition: ParsedEdition,
+  devo: DevoSlot,
+  remaining: Set<ParsedBanner>,
+  warnings: string[],
+  consume: boolean,
+): { banner: ParsedBanner; matchedBy: "title" | "position" } | undefined {
+  const titleKey = normalizeTitle(devo.title);
+  if (titleKey) {
+    const hits = edition.banners.filter(
+      (banner) => remaining.has(banner) && normalizeTitle(banner.title) === titleKey,
+    );
+    if (hits.length > 1) {
+      warnings.push(
+        `title "${devo.title}" matched ${hits.length} banners on ${edition.editionDate}; using position`,
+      );
+    } else if (hits.length === 1) {
+      if (consume) remaining.delete(hits[0]);
+      return { banner: hits[0], matchedBy: "title" };
+    }
+  }
+  const banner = edition.banners.find(
+    (candidate) => remaining.has(candidate) && candidate.position === devo.position,
+  );
+  if (!banner) return undefined;
+  if (consume) remaining.delete(banner);
+  return { banner, matchedBy: "position" };
+}
+
+function present(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
 }
 
 /** Columns the RSS step is allowed to write. Notion text is not in this object. */

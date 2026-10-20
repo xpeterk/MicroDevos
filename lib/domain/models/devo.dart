@@ -19,6 +19,7 @@ class Devo {
     this.stars,
     this.notionPageId,
     this.imageUrl,
+    this.imageAlt,
   });
 
   final String id;
@@ -40,6 +41,9 @@ class Devo {
 
   /// Optional banner. Null means the feed paints a placeholder.
   final String? imageUrl;
+
+  /// Alt text for [imageUrl]. Null when no banner was matched.
+  final String? imageAlt;
 
   String get dateKey => dateKeyOf(editionDate);
 
@@ -81,6 +85,7 @@ class Devo {
       status: json['status'] as String? ?? 'published',
       notionPageId: json['notion_page_id'] as String?,
       imageUrl: json['image_url'] as String?,
+      imageAlt: json['image_alt'] as String?,
       tags: (json['tags'] as List<dynamic>? ?? const [])
           .whereType<String>()
           .toList(),
@@ -104,6 +109,7 @@ class Devo {
     'status': status,
     'notion_page_id': notionPageId,
     'image_url': imageUrl,
+    'image_alt': imageAlt,
     'tags': tags,
   };
 }

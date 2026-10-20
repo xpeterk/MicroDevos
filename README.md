@@ -72,8 +72,8 @@ A new auth user gets a `profiles` row and a `preferences` row from a trigger.
 
 `supabase/migrations/20261018000002_feed_notes_and_images.sql` adds two things on top of the foundation schema:
 
-- `devos.image_url` is nullable text. Sample devotions leave it null. The feed paints a gradient placeholder and does not load a remote image.
-- `supabase/migrations/20261020000004_image_alt.sql` adds nullable `devos.image_alt`. The optional RSS step below is the only writer. It sets `image_url` and `image_alt` and does not change devotion text.
+- `devos.image_url` is nullable text. Sample devotions leave it null. The feed card paints that image when the URL is set, and the gradient placeholder when it is null.
+- `supabase/migrations/20261020000004_image_alt.sql` adds nullable `devos.image_alt`. The banner step is the only writer of `image_url` and `image_alt`. It does not change devotion text.
 - `notes` stores a private note on exactly one of `devo_id` or `generated_devo_id`. Columns are `body`, optional `anchor_text`, `anchor_start`, `anchor_end`, and a `section` key (`hook`, `body`, `takeaway`, `verse`, `scripture`) so a highlight can be found again after a re-render. A null section attaches the note to the whole devotion. Row-level security lets a signed-in reader select, insert, update, and delete only their own rows.
 
 With no Supabase session, likes and notes stay in `SharedPreferences`. Signing in syncs favorites through the existing table and pushes notes whose target id is a uuid. Personalized devotions saved on this phone stay in `SharedPreferences` under Mine until a signed-in reader saves them to `public.mine`.
@@ -259,9 +259,11 @@ npm run typecheck
 
 ### Banner images from the edition feed
 
-Notion stays the source for the hook, body, takeaway, and Scripture. `--rss` is an optional second step. It reads the public Substack feed, matches each post to the edition date in its title, and finds the per-devotion banner (the Substack CDN `src`, plus the image alt). The first image in a post is the edition cover and is skipped. The next images are matched to positions 1–8 by the `Devotion N:` label, or by image order when a label is missing. A unique title match wins over that position when the feed is applied to rows already imported from Notion.
+Notion stays the source for the hook, body, takeaway, and Scripture. Each card may also have a `Banner` property (a URL, or a Files property) and `Banner Alt` text. Those properties are optional: until they exist, the reader treats them as empty.
 
-The step updates only `devos.image_url` and `devos.image_alt`. Running it again writes the same values. If a position has no banner, the value stays null and the command logs a warning. RSS prose is never copied into the devotion text columns.
+`--rss` is an optional second step. It reads the public Substack feed, matches each post to the edition date in its title, and finds the per-devotion banner (the Substack CDN `src`, plus the image alt). The first image in a post is the edition cover and is skipped. The next images are matched to positions 1–8 by the `Devotion N:` label, or by image order when a label is missing. A unique title match wins over that position.
+
+For each devotion the banner step chooses the image in this order: the Notion `Banner` and `Banner Alt`, then the RSS match, then null. A Notion URL is kept even when the feed has a different image for that position. Running it again writes the same values. If neither source has an image, `image_url` stays null and the command logs a warning. RSS prose is never copied into the devotion text columns.
 
 ```bash
 cd tools/notion-import

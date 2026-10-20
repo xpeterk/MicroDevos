@@ -38,6 +38,8 @@ class DevoBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = paletteFor(devo);
+    final imageUrl = devo.imageUrl?.trim();
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
     return GestureDetector(
       key: Key('banner-${devo.id}'),
       onDoubleTap: onDoubleTap,
@@ -48,32 +50,46 @@ class DevoBanner extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: colors,
+              if (hasImage)
+                Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  semanticLabel: _bannerLabel(devo),
+                  errorBuilder: (context, error, stackTrace) =>
+                      _PlaceholderArt(colors: colors),
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return _PlaceholderArt(colors: colors);
+                  },
+                )
+              else ...[
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: colors,
+                    ),
                   ),
                 ),
-              ),
-              const Positioned(right: -30, top: 40, child: _Bubble(size: 180)),
-              const Positioned(
-                left: -40,
-                bottom: 20,
-                child: _Bubble(size: 220),
-              ),
-              const Positioned(right: 36, bottom: 90, child: _Bubble(size: 70)),
-              Positioned(
-                right: 28,
-                top: 72,
-                child: Icon(
-                  Icons.sell_outlined,
-                  size: 86,
-                  color: Colors.white.withValues(alpha: 0.28),
+                const Positioned(right: -30, top: 40, child: _Bubble(size: 180)),
+                const Positioned(
+                  left: -40,
+                  bottom: 20,
+                  child: _Bubble(size: 220),
                 ),
-              ),
-              const Positioned(top: 16, right: 16, child: _PlaceholderPill()),
+                const Positioned(right: 36, bottom: 90, child: _Bubble(size: 70)),
+                Positioned(
+                  right: 28,
+                  top: 72,
+                  child: Icon(
+                    Icons.sell_outlined,
+                    size: 86,
+                    color: Colors.white.withValues(alpha: 0.28),
+                  ),
+                ),
+                const Positioned(top: 16, right: 16, child: _PlaceholderPill()),
+              ],
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -105,6 +121,49 @@ class DevoBanner extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+String _bannerLabel(Devo devo) {
+  final alt = devo.imageAlt?.trim();
+  if (alt != null && alt.isNotEmpty) return alt;
+  return devo.title;
+}
+
+class _PlaceholderArt extends StatelessWidget {
+  const _PlaceholderArt({required this.colors});
+
+  final List<Color> colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: colors,
+            ),
+          ),
+        ),
+        const Positioned(right: -30, top: 40, child: _Bubble(size: 180)),
+        const Positioned(left: -40, bottom: 20, child: _Bubble(size: 220)),
+        const Positioned(right: 36, bottom: 90, child: _Bubble(size: 70)),
+        Positioned(
+          right: 28,
+          top: 72,
+          child: Icon(
+            Icons.sell_outlined,
+            size: 86,
+            color: Colors.white.withValues(alpha: 0.28),
+          ),
+        ),
+        const Positioned(top: 16, right: 16, child: _PlaceholderPill()),
+      ],
     );
   }
 }

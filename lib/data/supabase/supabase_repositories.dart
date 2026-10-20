@@ -13,7 +13,7 @@ class SupabaseDevoRepository implements DevoRepository {
   final SupabaseClient _client;
 
   static const _columns =
-      'id, title, hook, body_md, takeaway, verse_text, verse_ref, scriptures, source_url, edition_date, edition_url, position, stars, status, notion_page_id, image_url, devo_tags(tags(slug, label))';
+      'id, title, hook, body_md, takeaway, verse_text, verse_ref, scriptures, source_url, edition_date, edition_url, position, stars, status, notion_page_id, image_url, image_alt, devo_tags(tags(slug, label))';
 
   @override
   Future<Devo?> devoById(String id) async {

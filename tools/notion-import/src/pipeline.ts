@@ -5,7 +5,7 @@ import {
   type EmbeddingProvider,
   type TaggingProvider,
 } from "./enrichment.js";
-import { readDate, readStars, readStatus, readTitle, readUrl } from "./notion.js";
+import { readBannerAlt, readBannerUrl, readDate, readStars, readStatus, readTitle, readUrl } from "./notion.js";
 import { decide, parseDevoMarkdown } from "./parse.js";
 import type { ParsedDevo } from "./types.js";
 
@@ -23,6 +23,9 @@ export type SkippedCard = { id: string; title: string; reason: string };
 export type ImportedDevo = ParsedDevo & {
   tags: string[];
   embedding: number[] | null;
+  /** Card property. Not written by the text upsert. */
+  notion_banner_url: string | null;
+  notion_banner_alt: string | null;
 };
 
 export type ImportPlan = {
@@ -76,10 +79,14 @@ export async function planImport(
       continue;
     }
 
+    const notionBannerUrl = readBannerUrl(card.properties);
+    const notionBannerAlt = readBannerAlt(card.properties);
     for (const devo of devos) {
       const text = [devo.title, devo.hook, devo.body_md, devo.takeaway].join("\n");
       imported.push({
         ...devo,
+        notion_banner_url: notionBannerUrl,
+        notion_banner_alt: notionBannerAlt,
         tags: tagging.suggestTags(text, catalog),
         embedding: await embedding.embed(text),
       });
