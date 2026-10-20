@@ -22,42 +22,44 @@ void main() {
     bannerBytes = File('test/fixtures/banner.png').readAsBytesSync();
   });
 
-  testWidgets('feed card paints a banner, and the placeholder when it is null', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(390, 844);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
+  testWidgets(
+    'feed card paints a banner, and the placeholder when it is null',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
 
-    await _pumpCard(tester, devo: _devo(imageUrl: null, imageAlt: null));
-    expect(find.text('IMAGE PLACEHOLDER'), findsOneWidget);
-    await _capture(tester, 'build-banner-fallback');
+      await _pumpCard(tester, devo: _devo(imageUrl: null, imageAlt: null));
+      expect(find.text('IMAGE PLACEHOLDER'), findsOneWidget);
+      await _capture(tester, 'build-banner-fallback');
 
-    const imageUrl = 'https://example.com/notion-banner.png';
-    debugNetworkImageHttpClientProvider = () => _BannerHttpClient(bannerBytes);
-    try {
-      await _pumpCard(
-        tester,
-        devo: _devo(imageUrl: imageUrl, imageAlt: 'A still morning'),
-      );
-      await tester.runAsync(() async {
-        await precacheImage(
-          NetworkImage(imageUrl),
-          tester.element(find.byType(FeedPost)),
+      const imageUrl = 'https://example.com/notion-banner.png';
+      debugNetworkImageHttpClientProvider = () =>
+          _BannerHttpClient(bannerBytes);
+      try {
+        await _pumpCard(
+          tester,
+          devo: _devo(imageUrl: imageUrl, imageAlt: 'A still morning'),
         );
-      });
-      await tester.pump();
-      expect(find.text('IMAGE PLACEHOLDER'), findsNothing);
-      expect(find.bySemanticsLabel('A still morning'), findsOneWidget);
-      expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
-      await _capture(tester, 'build-banner');
-    } finally {
-      debugNetworkImageHttpClientProvider = null;
-    }
+        await tester.runAsync(() async {
+          await precacheImage(
+            NetworkImage(imageUrl),
+            tester.element(find.byType(FeedPost)),
+          );
+        });
+        await tester.pump();
+        expect(find.text('IMAGE PLACEHOLDER'), findsNothing);
+        expect(find.bySemanticsLabel('A still morning'), findsOneWidget);
+        expect(find.text('A Refuge That Does Not Move'), findsNothing);
+        await _capture(tester, 'build-banner');
+      } finally {
+        debugNetworkImageHttpClientProvider = null;
+      }
 
-    expect(tester.takeException(), isNull);
-  });
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 Future<void> _pumpCard(WidgetTester tester, {required Devo devo}) async {

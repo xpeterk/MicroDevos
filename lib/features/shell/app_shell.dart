@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/reading_widgets.dart';
 import '../personalize/personalize_run.dart';
 import '../personalize/personalize_sheet.dart';
 import '../personalize/personalize_state.dart';
@@ -75,17 +76,19 @@ class AppShell extends ConsumerWidget {
           ],
         ],
       ),
-      body: Stack(
-        children: [
-          if (showingResult) const PersonalizeResult() else shell,
-          if (showHint && shell.currentIndex == 0 && !showingResult)
-            const Positioned(
-              top: 4,
-              right: 16,
-              left: 56,
-              child: CreateHint(),
-            ),
-        ],
+      body: CenteredColumn(
+        child: Stack(
+          children: [
+            if (showingResult) const PersonalizeResult() else shell,
+            if (showHint && shell.currentIndex == 0 && !showingResult)
+              const Positioned(
+                top: 4,
+                right: 16,
+                left: 56,
+                child: CreateHint(),
+              ),
+          ],
+        ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: showingResult ? 2 : shell.currentIndex,

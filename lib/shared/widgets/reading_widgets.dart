@@ -4,6 +4,26 @@ import '../../core/theme/app_theme.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/models/scripture_quote.dart';
 
+/// Wide and landscape screens keep the feed in a centered column so a
+/// full-width banner stays readable and is still shown uncropped.
+const feedContentMaxWidth = 720.0;
+
+class CenteredColumn extends StatelessWidget {
+  const CenteredColumn({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: feedContentMaxWidth),
+        child: child,
+      ),
+    );
+  }
+}
+
 class ReadingWidth extends StatelessWidget {
   const ReadingWidth({required this.child, super.key});
 
@@ -214,18 +234,14 @@ class ScriptureList extends StatelessWidget {
         for (final quote in quotes) ...[
           Text(
             quote.text,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontStyle: FontStyle.italic,
-              height: 1.45,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(fontStyle: FontStyle.italic, height: 1.45),
           ),
           const SizedBox(height: 4),
           Text(
             quote.reference,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontFamily: AppTheme.sans,
-              color: scheme.primary,
-            ),
+            style: Theme.of(context).textTheme.labelMedium
+                ?.copyWith(fontFamily: AppTheme.sans, color: scheme.primary),
           ),
           const SizedBox(height: 14),
         ],
@@ -266,10 +282,8 @@ class _Block extends StatelessWidget {
     if (text.startsWith('### ')) {
       return Text(
         text.substring(4),
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontFamily: AppTheme.serif,
-          fontWeight: FontWeight.w600,
-        ),
+        style: Theme.of(context).textTheme.titleMedium
+            ?.copyWith(fontFamily: AppTheme.serif, fontWeight: FontWeight.w600),
       );
     }
     if (text.startsWith('> ')) {
@@ -291,14 +305,26 @@ class _Block extends StatelessWidget {
     var cursor = 0;
     for (final match in pattern.allMatches(value)) {
       if (match.start > cursor) {
-        spans.add(TextSpan(text: value.substring(cursor, match.start), style: style));
+        spans.add(
+          TextSpan(text: value.substring(cursor, match.start), style: style),
+        );
       }
       final bold = match.group(1);
       final italic = match.group(2);
       if (bold != null) {
-        spans.add(TextSpan(text: bold, style: style?.copyWith(fontWeight: FontWeight.w600)));
+        spans.add(
+          TextSpan(
+            text: bold,
+            style: style?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        );
       } else if (italic != null) {
-        spans.add(TextSpan(text: italic, style: style?.copyWith(fontStyle: FontStyle.italic)));
+        spans.add(
+          TextSpan(
+            text: italic,
+            style: style?.copyWith(fontStyle: FontStyle.italic),
+          ),
+        );
       }
       cursor = match.end;
     }

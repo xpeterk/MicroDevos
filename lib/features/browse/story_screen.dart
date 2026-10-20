@@ -74,214 +74,221 @@ class _StoryScreenState extends ConsumerState<StoryScreen> {
               ),
             ),
             child: SafeArea(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
-                    child: Row(
-                      children: [
-                        for (var i = 0; i < devos.length; i++)
+              child: CenteredColumn(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < devos.length; i++)
+                            Expanded(
+                              child: Container(
+                                height: 3,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: i <= index
+                                      ? Colors.white
+                                      : Colors.white.withValues(alpha: 0.35),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
+                      child: Row(
+                        children: [
+                          const _MdMark(),
+                          const SizedBox(width: 10),
                           Expanded(
-                            child: Container(
-                              height: 3,
-                              margin: const EdgeInsets.symmetric(horizontal: 2),
-                              decoration: BoxDecoration(
-                                color: i <= index
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.35),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  formatEditionDate(
+                                    devo.editionDate,
+                                    'EEE, MMM d',
+                                  ),
+                                  style: const TextStyle(
+                                    fontFamily: AppTheme.sans,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  '${devo.position} of ${devos.length} · $label',
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.sans,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
-                    child: Row(
-                      children: [
-                        const _MdMark(),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                formatEditionDate(
-                                  devo.editionDate,
-                                  'EEE, MMM d',
-                                ),
-                                style: const TextStyle(
-                                  fontFamily: AppTheme.sans,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                '${devo.position} of ${devos.length} · $label',
-                                style: TextStyle(
-                                  fontFamily: AppTheme.sans,
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
+                          IconButton(
+                            key: const Key('story-close'),
+                            tooltip: 'Close',
+                            onPressed: () => context.pop(),
+                            icon: const Icon(Icons.close, color: Colors.white),
                           ),
-                        ),
-                        IconButton(
-                          key: const Key('story-close'),
-                          tooltip: 'Close',
-                          onPressed: () => context.pop(),
-                          icon: const Icon(Icons.close, color: Colors.white),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTapUp: (details) {
-                        final width = context.size?.width ?? 0;
-                        _step(
-                          details.localPosition.dx < width / 2 ? -1 : 1,
-                          devos.length,
-                        );
-                      },
-                      onVerticalDragEnd: (details) {
-                        final velocity = details.primaryVelocity ?? 0;
-                        if (velocity < -250) context.push('/devo/${devo.id}');
-                      },
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: constraints.maxHeight,
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  20,
-                                  8,
-                                  20,
-                                  8,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _StoryBanner(devo: devo),
-                                    const SizedBox(height: 16),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        label.toUpperCase(),
-                                        style: const TextStyle(
-                                          fontFamily: AppTheme.sans,
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                          letterSpacing: 1,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      devo.title,
-                                      style: const TextStyle(
-                                        fontFamily: AppTheme.serif,
-                                        fontSize: 32,
-                                        height: 1.05,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      devo.hook,
-                                      style: TextStyle(
-                                        fontFamily: AppTheme.serif,
-                                        fontSize: 16,
-                                        height: 1.35,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.92,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    _StoryCard(devo: devo),
-                                  ],
-                                ),
-                              ),
-                            ),
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTapUp: (details) {
+                          final width = context.size?.width ?? 0;
+                          _step(
+                            details.localPosition.dx < width / 2 ? -1 : 1,
+                            devos.length,
                           );
                         },
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          tooltip: liked ? 'Remove from saved' : 'Save',
-                          onPressed: () => toggleLike(context, ref, devo.id),
-                          icon: Icon(
-                            liked ? Icons.favorite : Icons.favorite_border,
-                            color: Colors.white,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Share',
-                          onPressed: () => openShareSheet(context, devo),
-                          icon: const Icon(
-                            Icons.ios_share,
-                            color: Colors.white,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Note',
-                          onPressed: () {
-                            ref
-                                .read(noteDraftProvider.notifier)
-                                .openNew(devo.id);
-                            context.pop();
+                        onVerticalDragEnd: (details) {
+                          final velocity = details.primaryVelocity ?? 0;
+                          if (velocity < -250) context.push('/devo/${devo.id}');
+                        },
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SingleChildScrollView(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    8,
+                                    20,
+                                    8,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _StoryBanner(devo: devo),
+                                      const SizedBox(height: 16),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          label.toUpperCase(),
+                                          style: const TextStyle(
+                                            fontFamily: AppTheme.sans,
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            letterSpacing: 1,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        devo.title,
+                                        style: const TextStyle(
+                                          fontFamily: AppTheme.serif,
+                                          fontSize: 32,
+                                          height: 1.05,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        devo.hook,
+                                        style: TextStyle(
+                                          fontFamily: AppTheme.serif,
+                                          fontSize: 16,
+                                          height: 1.35,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.92,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      _StoryCard(devo: devo),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
                           },
-                          icon: const Icon(
-                            Icons.sticky_note_2_outlined,
-                            color: Colors.white,
-                          ),
                         ),
-                        const Spacer(),
-                        const Text(
-                          'Swipe up for the full devo',
-                          style: TextStyle(
-                            fontFamily: AppTheme.sans,
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      '‹ tap: previous          tap: next ›',
-                      style: TextStyle(
-                        fontFamily: AppTheme.sans,
-                        fontSize: 11,
-                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                     ),
-                  ),
-                ],
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 16, 8),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            tooltip: liked ? 'Remove from saved' : 'Save',
+                            onPressed: () => toggleLike(context, ref, devo.id),
+                            icon: Icon(
+                              liked ? Icons.favorite : Icons.favorite_border,
+                              color: Colors.white,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Share',
+                            onPressed: () => openShareSheet(context, devo),
+                            icon: const Icon(
+                              Icons.ios_share,
+                              color: Colors.white,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Note',
+                            onPressed: () {
+                              ref
+                                  .read(noteDraftProvider.notifier)
+                                  .openNew(devo.id);
+                              context.pop();
+                            },
+                            icon: const Icon(
+                              Icons.sticky_note_2_outlined,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const Spacer(),
+                          const Text(
+                            'Swipe up for the full devo',
+                            style: TextStyle(
+                              fontFamily: AppTheme.sans,
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        '‹ tap: previous          tap: next ›',
+                        style: TextStyle(
+                          fontFamily: AppTheme.sans,
+                          fontSize: 11,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -407,25 +414,13 @@ class _StoryBanner extends StatelessWidget {
     final label = bannerLabel(devo);
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: AspectRatio(
-        aspectRatio: 1200 / 315,
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.cover,
-          semanticLabel: label,
-          errorBuilder: (context, error, stackTrace) => Semantics(
-            label: label,
-            image: true,
-            child: const SizedBox.expand(),
-          ),
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return Semantics(
-              label: label,
-              image: true,
-              child: const SizedBox.expand(),
-            );
-          },
+      child: UncroppedNetworkImage(
+        imageUrl: imageUrl,
+        semanticLabel: label,
+        error: Semantics(
+          label: label,
+          image: true,
+          child: const SizedBox(height: 48),
         ),
       ),
     );

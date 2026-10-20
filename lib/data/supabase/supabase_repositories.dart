@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
+import '../../domain/devo_order.dart';
 import '../../domain/edition_calendar.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/models/user_preferences.dart';
@@ -35,8 +36,8 @@ class SupabaseDevoRepository implements DevoRepository {
         .select(_columns)
         .eq('edition_date', dateKeyOf(date))
         .inFilter('status', readerDevoStatuses)
-        .order('position');
-    return rows.map(devoFromRow).toList();
+        .order('position', ascending: true);
+    return devosInReadingOrder(rows.map(devoFromRow));
   }
 
   @override
@@ -60,7 +61,10 @@ class SupabaseDevoRepository implements DevoRepository {
 
   @override
   Future<List<Devo>> search({String text = '', DateTime? date}) async {
-    var filter = _client.from('devos').select(_columns).inFilter('status', readerDevoStatuses);
+    var filter = _client
+        .from('devos')
+        .select(_columns)
+        .inFilter('status', readerDevoStatuses);
     if (date != null) {
       filter = filter.eq('edition_date', dateKeyOf(date));
     }
@@ -71,8 +75,10 @@ class SupabaseDevoRepository implements DevoRepository {
         'title.ilike.%$safe%,hook.ilike.%$safe%,body_md.ilike.%$safe%,takeaway.ilike.%$safe%,verse_ref.ilike.%$safe%',
       );
     }
-    final rows = await filter.order('edition_date', ascending: false).order('position');
-    return rows.map(devoFromRow).toList();
+    final rows = await filter
+        .order('edition_date', ascending: false)
+        .order('position', ascending: true);
+    return devosInReadingOrder(rows.map(devoFromRow));
   }
 }
 
@@ -108,7 +114,11 @@ class SupabaseFavoritesRepository implements FavoritesRepository {
       }, onConflict: 'user_id,devo_id');
       return;
     }
-    await _client.from('favorites').delete().eq('user_id', _userId).eq('devo_id', devoId);
+    await _client
+        .from('favorites')
+        .delete()
+        .eq('user_id', _userId)
+        .eq('devo_id', devoId);
   }
 }
 
@@ -127,7 +137,11 @@ class SupabasePreferencesRepository implements PreferencesRepository {
 
   @override
   Future<UserPreferences> load() async {
-    final row = await _client.from('preferences').select().eq('user_id', _userId).maybeSingle();
+    final row = await _client
+        .from('preferences')
+        .select()
+        .eq('user_id', _userId)
+        .maybeSingle();
     if (row == null) return UserPreferences.initial();
     final time = row['notify_time']?.toString() ?? '07:30';
     return UserPreferences.fromJson({
@@ -181,7 +195,9 @@ class SupabaseAuthRepository implements AuthRepository {
 
   @override
   Stream<AuthUser?> authState() {
-    return _client.auth.onAuthStateChange.map((event) => _map(event.session?.user));
+    return _client.auth.onAuthStateChange.map(
+      (event) => _map(event.session?.user),
+    );
   }
 
   @override

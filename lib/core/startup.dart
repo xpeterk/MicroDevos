@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,11 +15,23 @@ import 'theme/app_theme.dart';
 /// Date labels use intl. en_US has built-in symbols; every other locale
 /// throws [LocaleDataException] until this runs, and release paints that
 /// as a grey box. The app copy is English, so the locale is pinned too.
+/// Portrait and landscape, including upside down. Nothing in the app locks
+/// the phone to portrait.
+const supportedOrientations = <DeviceOrientation>[
+  DeviceOrientation.portraitUp,
+  DeviceOrientation.portraitDown,
+  DeviceOrientation.landscapeLeft,
+  DeviceOrientation.landscapeRight,
+];
+
 Future<void> prepareFramework() async {
   WidgetsFlutterBinding.ensureInitialized();
   Intl.defaultLocale = 'en_US';
   await initializeDateFormatting('en_US');
   installReadableErrorWidget();
+  // Do not await. A widget test that awaits this platform call before the
+  // first pump never receives the reply, and the test hangs.
+  unawaited(SystemChrome.setPreferredOrientations(supportedOrientations));
 }
 
 /// Replaces Flutter's release error box (an empty grey rectangle) with copy

@@ -43,91 +43,177 @@ class DevoBanner extends StatelessWidget {
     return GestureDetector(
       key: Key('banner-${devo.id}'),
       onDoubleTap: onDoubleTap,
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: ClipRRect(
-          borderRadius: borderRadius,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (hasImage)
-                Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  semanticLabel: bannerLabel(devo),
-                  errorBuilder: (context, error, stackTrace) => Semantics(
-                    label: bannerLabel(devo),
-                    image: true,
-                    child: _PlaceholderArt(colors: colors),
-                  ),
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return Semantics(
-                      label: bannerLabel(devo),
-                      image: true,
-                      child: _PlaceholderArt(colors: colors),
-                    );
-                  },
-                )
-              else ...[
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: colors,
-                    ),
-                  ),
-                ),
-                const Positioned(right: -30, top: 40, child: _Bubble(size: 180)),
-                const Positioned(
-                  left: -40,
-                  bottom: 20,
-                  child: _Bubble(size: 220),
-                ),
-                const Positioned(right: 36, bottom: 90, child: _Bubble(size: 70)),
-                Positioned(
-                  right: 28,
-                  top: 72,
-                  child: Icon(
-                    Icons.sell_outlined,
-                    size: 86,
-                    color: Colors.white.withValues(alpha: 0.28),
-                  ),
-                ),
-                const Positioned(top: 16, right: 16, child: _PlaceholderPill()),
-              ],
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Color(0x99000000)],
-                    stops: [0.55, 1],
+      child: hasImage
+          ? ClipRRect(
+              borderRadius: borderRadius,
+              child: UncroppedNetworkImage(
+                imageUrl: imageUrl,
+                semanticLabel: bannerLabel(devo),
+                overlay: HeartBurst(token: burstToken),
+                error: AspectRatio(
+                  aspectRatio: 1,
+                  child: _PlaceholderFrame(
+                    colors: colors,
+                    title: showTitle ? devo.title : null,
+                    showPill: false,
+                    burstToken: burstToken,
                   ),
                 ),
               ),
-              if (showTitle)
-                Positioned(
-                  left: 20,
-                  right: 20,
-                  bottom: 22,
-                  child: Text(
-                    devo.title,
-                    style: const TextStyle(
-                      fontFamily: AppTheme.serif,
-                      fontSize: 32,
-                      height: 1.05,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+            )
+          : AspectRatio(
+              aspectRatio: 1,
+              child: ClipRRect(
+                borderRadius: borderRadius,
+                child: _PlaceholderFrame(
+                  colors: colors,
+                  title: showTitle ? devo.title : null,
+                  showPill: true,
+                  burstToken: burstToken,
                 ),
-              HeartBurst(token: burstToken),
+              ),
+            ),
+    );
+  }
+}
+
+/// A network banner at the full width of its parent, using the decoded
+/// image's own aspect ratio. Nothing is cropped off the sides.
+///
+/// A parent that forces a height (a small thumbnail) letterboxes the whole
+/// image instead. While the bytes are still loading, the slot uses the
+/// usual Substack banner ratio so the card does not jump through a square.
+class UncroppedNetworkImage extends StatefulWidget {
+  const UncroppedNetworkImage({
+    required this.imageUrl,
+    required this.semanticLabel,
+    this.overlay,
+    this.error,
+    super.key,
+  });
+
+  final String imageUrl;
+  final String semanticLabel;
+  final Widget? overlay;
+  final Widget? error;
+
+  @override
+  State<UncroppedNetworkImage> createState() => _UncroppedNetworkImageState();
+}
+
+class _UncroppedNetworkImageState extends State<UncroppedNetworkImage> {
+  static const _loadingAspect = 1200 / 315;
+
+  ImageStream? _stream;
+  ImageStreamListener? _listener;
+  String? _subscribedUrl;
+  double? _aspect;
+  bool _failed = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _subscribe();
+  }
+
+  @override
+  void didUpdateWidget(UncroppedNetworkImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imageUrl != widget.imageUrl) _subscribe();
+  }
+
+  void _subscribe() {
+    if (_subscribedUrl == widget.imageUrl && _listener != null) return;
+    _detach();
+    _subscribedUrl = widget.imageUrl;
+    _aspect = null;
+    _failed = false;
+    final provider = NetworkImage(widget.imageUrl);
+    final stream = provider.resolve(createLocalImageConfiguration(context));
+    _listener = ImageStreamListener(
+      (info, synchronous) {
+        final height = info.image.height;
+        final aspect = height == 0 ? 1.0 : info.image.width / height;
+        void apply() {
+          if (!mounted || _subscribedUrl != widget.imageUrl) return;
+          setState(() {
+            _aspect = aspect;
+            _failed = false;
+          });
+        }
+
+        if (synchronous) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => apply());
+        } else {
+          apply();
+        }
+      },
+      onError: (error, stackTrace) {
+        void apply() {
+          if (!mounted || _subscribedUrl != widget.imageUrl) return;
+          setState(() => _failed = true);
+        }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) => apply());
+      },
+    );
+    _stream = stream;
+    stream.addListener(_listener!);
+  }
+
+  void _detach() {
+    if (_stream != null && _listener != null) {
+      _stream!.removeListener(_listener!);
+    }
+    _stream = null;
+    _listener = null;
+  }
+
+  @override
+  void dispose() {
+    _detach();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_failed) return widget.error ?? const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final forcedHeight =
+            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+        final image = Image(
+          key: ValueKey('banner-photo-${widget.imageUrl}'),
+          image: NetworkImage(widget.imageUrl),
+          fit: forcedHeight ? BoxFit.contain : BoxFit.fitWidth,
+          width: double.infinity,
+          alignment: Alignment.center,
+          semanticLabel: widget.semanticLabel,
+        );
+        if (forcedHeight) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [image, if (widget.overlay != null) widget.overlay!],
+          );
+        }
+        return AspectRatio(
+          aspectRatio: _aspect ?? _loadingAspect,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (_aspect == null)
+                Semantics(
+                  label: widget.semanticLabel,
+                  image: true,
+                  child: const ColoredBox(color: Color(0xFFE7E1D6)),
+                )
+              else
+                image,
+              if (widget.overlay != null) widget.overlay!,
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -136,6 +222,59 @@ String bannerLabel(Devo devo) {
   final alt = devo.imageAlt?.trim();
   if (alt != null && alt.isNotEmpty) return alt;
   return devo.title;
+}
+
+class _PlaceholderFrame extends StatelessWidget {
+  const _PlaceholderFrame({
+    required this.colors,
+    required this.burstToken,
+    required this.showPill,
+    this.title,
+  });
+
+  final List<Color> colors;
+  final String? title;
+  final bool showPill;
+  final int burstToken;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _PlaceholderArt(colors: colors),
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Color(0x99000000)],
+              stops: [0.55, 1],
+            ),
+          ),
+        ),
+        if (showPill)
+          const Positioned(top: 16, right: 16, child: _PlaceholderPill()),
+        if (title != null)
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 22,
+            child: Text(
+              title!,
+              style: const TextStyle(
+                fontFamily: AppTheme.serif,
+                fontSize: 32,
+                height: 1.05,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        HeartBurst(token: burstToken),
+      ],
+    );
+  }
 }
 
 class _PlaceholderArt extends StatelessWidget {

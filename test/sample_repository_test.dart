@@ -6,6 +6,7 @@ import 'package:micro_devos/data/sample/memory_repositories.dart';
 import 'package:micro_devos/data/sample/sample_catalog.dart';
 import 'package:micro_devos/data/sample/sample_devo_repository.dart';
 import 'package:micro_devos/data/supabase/supabase_mappers.dart';
+import 'package:micro_devos/domain/devo_order.dart';
 import 'package:micro_devos/domain/edition_calendar.dart';
 import 'package:micro_devos/domain/models/devo.dart';
 import 'package:micro_devos/domain/models/user_preferences.dart';
@@ -27,7 +28,21 @@ void main() {
     expect(friday, hasLength(8));
     expect(thursday, hasLength(8));
     expect(friday.map((devo) => devo.position), [1, 2, 3, 4, 5, 6, 7, 8]);
-    expect(friday.every((devo) => devo.hook.isNotEmpty && devo.takeaway.isNotEmpty), isTrue);
+    final reversed = [...friday.reversed];
+    expect(devosInReadingOrder(reversed).map((devo) => devo.position), [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+    ]);
+    expect(
+      friday.every((devo) => devo.hook.isNotEmpty && devo.takeaway.isNotEmpty),
+      isTrue,
+    );
     expect(friday.every((devo) => devo.verseText.isNotEmpty), isTrue);
     expect(await repository.devosForDate(DateTime(2026, 10, 18)), isEmpty);
   });
@@ -59,30 +74,41 @@ void main() {
     expect(await repository.devoById('missing'), isNull);
   });
 
-  test('sunday opens the latest weekday edition unless the reader picks a date', () {
-    final editions = [DateTime(2026, 10, 16), DateTime(2026, 10, 15)];
-    final sunday = DateTime(2026, 10, 18, 9);
-    final resolved = resolveEditionDate(
-      today: sunday,
-      editions: editions,
-      selected: null,
-    );
-    expect(resolved, DateTime(2026, 10, 16));
-    expect(
-      editionIsFallback(today: sunday, edition: resolved!, readerChoseDate: false),
-      isTrue,
-    );
-    final chosen = resolveEditionDate(
-      today: sunday,
-      editions: editions,
-      selected: DateTime(2026, 10, 15, 22),
-    );
-    expect(chosen, DateTime(2026, 10, 15));
-    expect(
-      editionIsFallback(today: sunday, edition: chosen!, readerChoseDate: true),
-      isFalse,
-    );
-  });
+  test(
+    'sunday opens the latest weekday edition unless the reader picks a date',
+    () {
+      final editions = [DateTime(2026, 10, 16), DateTime(2026, 10, 15)];
+      final sunday = DateTime(2026, 10, 18, 9);
+      final resolved = resolveEditionDate(
+        today: sunday,
+        editions: editions,
+        selected: null,
+      );
+      expect(resolved, DateTime(2026, 10, 16));
+      expect(
+        editionIsFallback(
+          today: sunday,
+          edition: resolved!,
+          readerChoseDate: false,
+        ),
+        isTrue,
+      );
+      final chosen = resolveEditionDate(
+        today: sunday,
+        editions: editions,
+        selected: DateTime(2026, 10, 15, 22),
+      );
+      expect(chosen, DateTime(2026, 10, 15));
+      expect(
+        editionIsFallback(
+          today: sunday,
+          edition: chosen!,
+          readerChoseDate: true,
+        ),
+        isFalse,
+      );
+    },
+  );
 
   test('today opens 2026-10-19 when that edition exists, even if the list is oldest first', () {
     final editions = [
@@ -98,7 +124,11 @@ void main() {
     );
     expect(monday, DateTime(2026, 10, 19));
     expect(
-      editionIsFallback(today: mondayNight, edition: monday!, readerChoseDate: false),
+      editionIsFallback(
+        today: mondayNight,
+        edition: monday!,
+        readerChoseDate: false,
+      ),
       isFalse,
     );
 
@@ -110,7 +140,11 @@ void main() {
     );
     expect(resolved, DateTime(2026, 10, 19));
     expect(
-      editionIsFallback(today: tuesday, edition: resolved!, readerChoseDate: false),
+      editionIsFallback(
+        today: tuesday,
+        edition: resolved!,
+        readerChoseDate: false,
+      ),
       isTrue,
     );
   });

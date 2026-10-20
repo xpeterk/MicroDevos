@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/sample/sample_catalog.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/models/devo_note.dart';
+import '../../shared/widgets/reading_widgets.dart';
 import 'banner.dart';
 import 'browse_state.dart';
 import 'feed_snack.dart';
@@ -44,88 +45,90 @@ class FeedView extends ConsumerWidget {
         ? 'TODAY'
         : 'TODAY · ${formatEditionDate(edition!, 'EEE, MMM d').toUpperCase()} · ${devos.length} DEVOS';
 
-    return CustomScrollView(
-      key: const Key('feed-scroll'),
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  kicker,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontFamily: AppTheme.sans,
-                    letterSpacing: 1.1,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                if (isFallback && edition != null) ...[
-                  const SizedBox(height: 4),
+    return CenteredColumn(
+      child: CustomScrollView(
+        key: const Key('feed-scroll'),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    'Showing ${formatEditionDate(edition!, 'EEEE, MMMM d')}, the latest weekday edition.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    kicker,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       fontFamily: AppTheme.sans,
-                      fontSize: 13,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      letterSpacing: 1.1,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
+                  if (isFallback && edition != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Showing ${formatEditionDate(edition!, 'EEEE, MMMM d')}, the latest weekday edition.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontFamily: AppTheme.sans,
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 108,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              itemCount: devos.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final devo = devos[index];
-                final label = _label(catalog, devo);
-                return GestureDetector(
-                  key: Key('story-${devo.id}'),
-                  onTap: () => context.push('/story/${devo.id}'),
-                  child: StoryCircle(devo: devo, label: label),
-                );
-              },
-            ),
-          ),
-        ),
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _FilterBarDelegate(catalog: catalog),
-        ),
-        if (visible.isEmpty)
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                'Nothing matches these filters.',
-                style: TextStyle(fontFamily: AppTheme.serif, fontSize: 18),
               ),
             ),
-          )
-        else
+          ),
           SliverToBoxAdapter(
-            child: Column(
-              children: [
-                for (final devo in visible)
-                  FeedPost(
-                    devo: devo,
-                    total: devos.length,
-                    label: _label(catalog, devo),
-                    catalog: catalog,
-                  ),
-              ],
+            child: SizedBox(
+              height: 108,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                itemCount: devos.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final devo = devos[index];
+                  final label = _label(catalog, devo);
+                  return GestureDetector(
+                    key: Key('story-${devo.id}'),
+                    onTap: () => context.push('/story/${devo.id}'),
+                    child: StoryCircle(devo: devo, label: label),
+                  );
+                },
+              ),
             ),
           ),
-      ],
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _FilterBarDelegate(catalog: catalog),
+          ),
+          if (visible.isEmpty)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'Nothing matches these filters.',
+                  style: TextStyle(fontFamily: AppTheme.serif, fontSize: 18),
+                ),
+              ),
+            )
+          else
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  for (final devo in visible)
+                    FeedPost(
+                      devo: devo,
+                      total: devos.length,
+                      label: _label(catalog, devo),
+                      catalog: catalog,
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

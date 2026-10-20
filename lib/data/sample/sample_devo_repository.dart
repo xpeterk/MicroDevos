@@ -1,3 +1,4 @@
+import '../../domain/devo_order.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/repositories/repositories.dart';
 import 'sample_catalog.dart';
@@ -17,9 +18,10 @@ class SampleDevoRepository implements DevoRepository {
 
   @override
   Future<List<Devo>> devosForDate(DateTime date) async {
-    final matches = catalog.devos.where((devo) => isSameDate(devo.editionDate, date)).toList()
-      ..sort((a, b) => a.position.compareTo(b.position));
-    return matches;
+    final matches = catalog.devos.where(
+      (devo) => isSameDate(devo.editionDate, date),
+    );
+    return devosInReadingOrder(matches);
   }
 
   @override
@@ -39,22 +41,23 @@ class SampleDevoRepository implements DevoRepository {
   @override
   Future<List<Devo>> search({String text = '', DateTime? date}) async {
     final query = text.trim().toLowerCase();
-    final terms = query.split(RegExp(r'\s+')).where((term) => term.isNotEmpty).toList();
+    final terms = query
+        .split(RegExp(r'\s+'))
+        .where((term) => term.isNotEmpty)
+        .toList();
     final matches = catalog.devos.where((devo) {
       if (date != null && !isSameDate(devo.editionDate, date)) return false;
       if (terms.isEmpty) return true;
       final haystack = _haystack(devo);
       return terms.every(haystack.contains);
-    }).toList()..sort((a, b) {
-      final byDate = b.editionDate.compareTo(a.editionDate);
-      if (byDate != 0) return byDate;
-      return a.position.compareTo(b.position);
     });
-    return matches;
+    return devosInReadingOrder(matches);
   }
 
   String _haystack(Devo devo) {
-    final labels = devo.tags.map((slug) => catalog.tagBySlug(slug)?.label ?? slug);
+    final labels = devo.tags.map(
+      (slug) => catalog.tagBySlug(slug)?.label ?? slug,
+    );
     return [
       devo.title,
       devo.hook,

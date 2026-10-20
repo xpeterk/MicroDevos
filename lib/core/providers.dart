@@ -15,6 +15,7 @@ import '../data/sample/sample_devo_repository.dart';
 import '../data/supabase/supabase_notes_repository.dart';
 import '../data/supabase/supabase_repositories.dart';
 import '../domain/bible/verse_provider.dart';
+import '../domain/devo_order.dart';
 import '../domain/edition_calendar.dart';
 import '../domain/enrichment/embedding_provider.dart';
 import '../domain/enrichment/tagging_provider.dart';
@@ -205,7 +206,7 @@ final todayProvider = FutureProvider<TodaySnapshot>((ref) async {
   final devos = edition == null ? <Devo>[] : await repo.devosForDate(edition);
   return TodaySnapshot(
     edition: edition,
-    devos: devos,
+    devos: devosInReadingOrder(devos),
     isFallback:
         edition != null &&
         editionIsFallback(
@@ -256,7 +257,9 @@ final archiveQueryProvider =
 final archiveProvider = FutureProvider<List<Devo>>((ref) async {
   final repo = await ref.watch(devoRepositoryProvider.future);
   final query = ref.watch(archiveQueryProvider);
-  return repo.search(text: query.text, date: query.date);
+  return devosInReadingOrder(
+    await repo.search(text: query.text, date: query.date),
+  );
 });
 
 final editionDatesProvider = FutureProvider<List<DateTime>>((ref) async {
