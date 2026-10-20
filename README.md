@@ -37,7 +37,7 @@ Screens:
 | `/for-you` | Stub for recommendations. Create a devotion opens Personalize. |
 | `/create` | Points at the top-bar Create button. Personalize is that sheet, not this route. |
 
-**Create** in the top bar opens Personalize and drafts a new devotion. The filter bar only narrows devotions already in the feed. The sheet steps are What (Topic or Verse, with optional age and life-situation chips), Style, then Generate. The result is a feed card with like, share, note, Save to Mine, and Regenerate. Verse mode stores the reader's ESV or NIV choice. The on-sheet preview is bundled KJV and is labeled as sample text.
+**Create** in the top bar opens Personalize and drafts a new devotion. The filter bar only narrows devotions already in the feed. The sheet steps are What (Topic or Verse), Style, then For whom (optional age and life-situation chips), then Generate. Next, Back, and a horizontal swipe move between steps. A swipe cannot leave What until a topic or verse is chosen, or Style until a style is chosen. The result is a feed card with like, share, note, Save to Mine, and Regenerate. Verse mode stores the reader's ESV or NIV choice. The on-sheet preview is bundled KJV and is labeled as sample text.
 
 There is no author byline on any screen or in share text.
 

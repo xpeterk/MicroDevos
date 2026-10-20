@@ -59,8 +59,6 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const Key('topic-suggestion-New job')));
-    await tester.tap(find.byKey(const Key('age-30–44')));
-    await tester.tap(find.byKey(const Key('life-Work')));
     await tester.pump();
     await _capture(tester, 'build-PZ2');
 
@@ -95,6 +93,11 @@ void main() {
     await _capture(tester, 'build-PZ4');
 
     container.read(personalizeEngineProvider).seedWeekUsage(2);
+    await tester.tap(find.byKey(const Key('personalize-next-for-whom')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('age-30–44')));
+    await tester.tap(find.byKey(const Key('life-Work')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('personalize-generate')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 450));
@@ -124,6 +127,8 @@ void main() {
     await tester.tap(find.byKey(const Key('personalize-next')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('style-spurgeon')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('personalize-next-for-whom')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('personalize-generate')));
     await tester.pump();
@@ -168,6 +173,8 @@ void main() {
     await tester.enterText(find.byKey(const Key('topic-field')), 'Anxiety');
     await tester.pump();
     await tester.tap(find.byKey(const Key('personalize-next')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('personalize-next-for-whom')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('personalize-generate')));
     await tester.pump();

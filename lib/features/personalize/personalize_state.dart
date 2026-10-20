@@ -81,6 +81,31 @@ class PersonalizeForm {
   }
 }
 
+/// What must have a topic or a verse. Style must have a choice. For whom
+/// is optional.
+bool personalizeStepComplete(PersonalizeForm form, int step) {
+  switch (step) {
+    case 0:
+      return form.canContinue;
+    case 1:
+      return form.styleKey.trim().isNotEmpty;
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+/// A later step opens only when every earlier required step is complete.
+/// Earlier steps are always reachable.
+bool personalizeStepReachable(PersonalizeForm form, int target) {
+  if (target < 0 || target > 2) return false;
+  for (var step = 0; step < target; step++) {
+    if (!personalizeStepComplete(form, step)) return false;
+  }
+  return true;
+}
+
 class PersonalizeFormController extends Notifier<PersonalizeForm> {
   @override
   PersonalizeForm build() => const PersonalizeForm();

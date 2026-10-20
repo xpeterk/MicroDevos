@@ -56,9 +56,10 @@ class PersonalizeWritingScreen extends ConsumerWidget {
       );
     }
 
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       key: const Key('personalize-writing'),
-      backgroundColor: AppColors.paper,
+      backgroundColor: scheme.surface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(28, 36, 28, 24),
@@ -95,14 +96,14 @@ class PersonalizeWritingScreen extends ConsumerWidget {
                     ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Usually under 20 seconds. You can leave this screen; it will show up in Saved › Mine.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: AppTheme.sans,
                   fontSize: 15,
                   height: 1.35,
-                  color: AppColors.inkMuted,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 16),
@@ -173,7 +174,7 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
             children: [
               const _Avatar(),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -182,6 +183,7 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
                       style: TextStyle(
                         fontFamily: AppTheme.sans,
                         fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
                       ),
                     ),
                     Text(
@@ -189,7 +191,7 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
                       style: TextStyle(
                         fontFamily: AppTheme.sans,
                         fontSize: 13,
-                        color: AppColors.inkMuted,
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -486,13 +488,14 @@ class _CapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: scheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.paperDeep),
+        border: Border.all(color: scheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,10 +505,11 @@ class _CapCard extends StatelessWidget {
               Text(
                 '${cap.left} of ${cap.weeklyCap} left this week',
                 key: const Key('cap-label'),
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppTheme.sans,
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
+                  color: scheme.onSurface,
                 ),
               ),
               const SizedBox(width: 8),
@@ -548,12 +552,12 @@ class _CapCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Resets Monday. Limit and pricing not decided yet.',
             style: TextStyle(
               fontFamily: AppTheme.sans,
               fontSize: 13,
-              color: AppColors.inkMuted,
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -570,12 +574,13 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: filled ? AppColors.oliveSoft : AppColors.card,
+        color: filled ? scheme.primaryContainer : scheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: filled ? null : Border.all(color: AppColors.paperDeep),
+        border: filled ? null : Border.all(color: scheme.outline),
       ),
       child: Text(
         label,
@@ -583,7 +588,7 @@ class _InfoChip extends StatelessWidget {
           fontFamily: AppTheme.sans,
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: filled ? AppColors.olive : AppColors.ink,
+          color: filled ? scheme.primary : scheme.onSurface,
         ),
       ),
     );
