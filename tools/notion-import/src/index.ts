@@ -8,6 +8,12 @@ import { decide } from "./parse.js";
 import { buildDevoTagLinks, savedKey } from "./devo-tags.js";
 import { UPSERT_ON_CONFLICT, planImport, toUpsertRows, type ImportedDevo, type SourceCard } from "./pipeline.js";
 import {
+  SECTION_TAGS_ON_CONFLICT,
+  SECTION_UPSERT_ON_CONFLICT,
+  buildSectionTagLinks,
+  buildSectionUpsertRows,
+} from "./sections.js";
+import {
   bannerWritePayload,
   formatBannerReport,
   loadFeedXml,
@@ -127,7 +133,66 @@ async function upsertNotionRows(imported: ImportedDevo[], skipped: number) {
       .upsert(links, { onConflict: "devo_id,tag_id" });
     if (linkError) throw linkError;
   }
+  await upsertSections(supabase, imported, saved, tagIds);
   console.log(`Upserted ${rows.length} devotions on ${UPSERT_ON_CONFLICT}. Skipped ${skipped}.`);
+}
+
+async function upsertSections(
+  supabase: ReturnType<typeof supabaseClient>,
+  imported: ImportedDevo[],
+  saved: Map<string, string>,
+  tagIds: Map<string, string>,
+) {
+  const rows = [];
+  for (const devo of imported) {
+    const devoId = saved.get(savedKey(devo.notion_page_id, devo.position));
+    if (!devoId) continue;
+    rows.push(...buildSectionUpsertRows(devoId, devo.sections ?? []));
+  }
+  let savedSections: Array<{ id: string; devo_id: string; position: number }> = [];
+  if (rows.length > 0) {
+    const { data, error } = await supabase
+      .from("devo_sections")
+      .upsert(rows, { onConflict: SECTION_UPSERT_ON_CONFLICT })
+      .select("id, devo_id, position");
+    if (error) throw error;
+    savedSections = (data ?? []) as Array<{ id: string; devo_id: string; position: number }>;
+  }
+  const byKey = new Map(savedSections.map((row) => [`${row.devo_id}:${row.position}`, row.id]));
+  const tagged: Array<{ id: string; tags: string[] }> = [];
+  for (const devo of imported) {
+    const devoId = saved.get(savedKey(devo.notion_page_id, devo.position));
+    if (!devoId) continue;
+    for (const section of devo.sections ?? []) {
+      const id = byKey.get(`${devoId}:${section.position}`);
+      if (id) tagged.push({ id, tags: section.tags });
+    }
+    const keep = (devo.sections ?? []).map((section) => section.position);
+    let removal = supabase.from("devo_sections").delete().eq("devo_id", devoId);
+    if (keep.length > 0) {
+      removal = removal.not("position", "in", `(${keep.join(",")})`);
+    }
+    const { error: removeError } = await removal;
+    if (removeError) throw removeError;
+  }
+  for (const section of tagged) {
+    const keepIds = section.tags
+      .map((slug) => tagIds.get(slug))
+      .filter((id): id is string => Boolean(id));
+    let tagRemoval = supabase.from("section_tags").delete().eq("section_id", section.id);
+    if (keepIds.length > 0) {
+      tagRemoval = tagRemoval.not("tag_id", "in", `(${keepIds.join(",")})`);
+    }
+    const { error: tagRemoveError } = await tagRemoval;
+    if (tagRemoveError) throw tagRemoveError;
+  }
+  const sectionLinks = buildSectionTagLinks(tagged, tagIds);
+  if (sectionLinks.length > 0) {
+    const { error } = await supabase
+      .from("section_tags")
+      .upsert(sectionLinks, { onConflict: SECTION_TAGS_ON_CONFLICT });
+    if (error) throw error;
+  }
 }
 
 async function runRssStep(options: {

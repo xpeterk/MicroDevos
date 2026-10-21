@@ -1,3 +1,4 @@
+import 'devo_section.dart';
 import 'scripture_quote.dart';
 
 class Devo {
@@ -14,6 +15,7 @@ class Devo {
     required this.position,
     required this.status,
     required this.tags,
+    this.sections = const [],
     this.sourceUrl,
     this.editionUrl,
     this.stars,
@@ -39,6 +41,9 @@ class Devo {
   final String? notionPageId;
   final List<String> tags;
 
+  /// Empty means the full devotion is the body, as it was before sections.
+  final List<DevoSection> sections;
+
   /// Optional banner. Null means the feed paints a placeholder.
   final String? imageUrl;
 
@@ -46,6 +51,30 @@ class Devo {
   final String? imageAlt;
 
   String get dateKey => dateKeyOf(editionDate);
+
+  Devo copyWith({List<DevoSection>? sections}) {
+    return Devo(
+      id: id,
+      title: title,
+      hook: hook,
+      bodyMd: bodyMd,
+      takeaway: takeaway,
+      verseText: verseText,
+      verseRef: verseRef,
+      scriptures: scriptures,
+      editionDate: editionDate,
+      position: position,
+      status: status,
+      tags: tags,
+      sections: sections ?? this.sections,
+      sourceUrl: sourceUrl,
+      editionUrl: editionUrl,
+      stars: stars,
+      notionPageId: notionPageId,
+      imageUrl: imageUrl,
+      imageAlt: imageAlt,
+    );
+  }
 
   String toShareText() {
     return [
@@ -89,6 +118,15 @@ class Devo {
       tags: (json['tags'] as List<dynamic>? ?? const [])
           .whereType<String>()
           .toList(),
+      sections: (json['sections'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) => DevoSection.fromJson(
+              Map<String, dynamic>.from(item),
+              devoId: json['id'] as String? ?? '',
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -111,6 +149,7 @@ class Devo {
     'image_url': imageUrl,
     'image_alt': imageAlt,
     'tags': tags,
+    'sections': sections.map((section) => section.toJson()).toList(),
   };
 }
 

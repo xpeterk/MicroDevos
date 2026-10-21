@@ -53,6 +53,7 @@ class _NotePaneState extends ConsumerState<NotePane> {
             anchorStart: draft.anchorStart,
             anchorEnd: draft.anchorEnd,
             section: draft.hasAnchor ? draft.section : null,
+            sectionId: draft.sectionId,
             createdAt: now,
             updatedAt: now,
           ),
@@ -95,6 +96,20 @@ class _NotePaneState extends ConsumerState<NotePane> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (draft.caption != null && draft.caption!.trim().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  draft.caption!,
+                  key: const Key('note-section-caption'),
+                  style: const TextStyle(
+                    fontFamily: AppTheme.sans,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF3A2A1C),
+                  ),
+                ),
+              ),
             Row(
               children: [
                 const Icon(Icons.sticky_note_2_outlined, size: 18),

@@ -157,6 +157,8 @@ class NoteDraft {
     this.anchorStart,
     this.anchorEnd,
     this.section,
+    this.sectionId,
+    this.caption,
   });
 
   final String session;
@@ -167,6 +169,10 @@ class NoteDraft {
   final int? anchorStart;
   final int? anchorEnd;
   final String? section;
+  final String? sectionId;
+
+  /// "Part 3 · Title — Parent" when the note is for one section.
+  final String? caption;
 
   bool get hasAnchor => isUsableAnchor(anchorText);
 
@@ -185,6 +191,8 @@ class NoteDraft {
       anchorStart: anchorStart ?? this.anchorStart,
       anchorEnd: anchorEnd ?? this.anchorEnd,
       section: section ?? this.section,
+      sectionId: sectionId,
+      caption: caption,
     );
   }
 }
@@ -193,11 +201,19 @@ class NoteDraftController extends Notifier<NoteDraft?> {
   @override
   NoteDraft? build() => null;
 
-  void openNew(String devoId) {
-    _open(NoteDraft(session: newNoteId(), devoId: devoId, initialBody: ''));
+  void openNew(String devoId, {String? sectionId, String? caption}) {
+    _open(
+      NoteDraft(
+        session: newNoteId(),
+        devoId: devoId,
+        initialBody: '',
+        sectionId: sectionId,
+        caption: caption,
+      ),
+    );
   }
 
-  void openExisting(DevoNote note) {
+  void openExisting(DevoNote note, {String? caption}) {
     final devoId = note.devoId ?? note.generatedDevoId;
     if (devoId == null) return;
     _open(
@@ -210,6 +226,8 @@ class NoteDraftController extends Notifier<NoteDraft?> {
         anchorStart: note.anchorStart,
         anchorEnd: note.anchorEnd,
         section: note.section,
+        sectionId: note.sectionId,
+        caption: caption,
       ),
     );
   }

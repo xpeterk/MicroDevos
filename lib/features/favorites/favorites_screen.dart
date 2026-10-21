@@ -7,6 +7,7 @@ import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/models/devo_note.dart';
+import '../../domain/models/devo_section.dart';
 import '../../shared/widgets/reading_widgets.dart';
 import '../browse/banner.dart';
 import '../browse/browse_state.dart';
@@ -40,6 +41,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     }
     final ids = (favorites.value ?? const <String>{}).toList()..sort();
     final noteList = notes.value ?? const <DevoNote>[];
+    final sectionFavs =
+        ref.watch(sectionFavoritesProvider).value ?? const <SectionFavorite>[];
     final likedDevos =
         [for (final id in ids) ?ref.watch(devoByIdProvider(id)).asData?.value]
           ..sort((a, b) {
@@ -163,6 +166,28 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             ),
           ),
         ),
+        if (segment == SavedSegment.liked && sectionFavs.isNotEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final saved = sectionFavs[index];
+                final parent = ref
+                    .watch(devoByIdProvider(saved.devoId))
+                    .asData
+                    ?.value;
+                final section = parent?.sections
+                    .where((item) => item.id == saved.sectionId)
+                    .firstOrNull;
+                return _SavedSectionRow(
+                  devo: parent,
+                  section: section,
+                  sectionId: saved.sectionId,
+                  devoId: saved.devoId,
+                );
+              }, childCount: sectionFavs.length),
+            ),
+          ),
         if (segment == SavedSegment.liked && shown.isEmpty)
           const SliverToBoxAdapter(child: SizedBox(height: 24))
         else if (segment == SavedSegment.liked && _grid)
@@ -411,7 +436,18 @@ class _NoteGroupCard extends ConsumerWidget {
                 ),
                 for (final note in notes) ...[
                   const SizedBox(height: 8),
-                  if (note.hasAnchor)
+                  if (note.sectionId != null)
+                    Text(
+                      _sectionNoteLabel(devo, note),
+                      key: Key('saved-note-section-${note.id}'),
+                      style: TextStyle(
+                        fontFamily: AppTheme.sans,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSurface,
+                      ),
+                    )
+                  else if (note.hasAnchor)
                     Text(
                       '“${note.anchorText}”',
                       style: TextStyle(
@@ -461,7 +497,76 @@ class _NoteGroupCard extends ConsumerWidget {
   void _open(WidgetRef ref, BuildContext context, DevoNote note) {
     ref.read(noteDraftProvider.notifier).openExisting(note);
     final devoId = note.devoId;
-    if (devoId != null) context.push('/devo/$devoId');
+    if (devoId == null) return;
+    final section = note.sectionId;
+    if (section == null) {
+      context.push('/devo/$devoId');
+    } else {
+      context.push('/devo/$devoId?section=$section');
+    }
+  }
+}
+
+String _sectionNoteLabel(Devo? devo, DevoNote note) {
+  final section = devo?.sections
+      .where((item) => item.id == note.sectionId)
+      .firstOrNull;
+  if (section == null) {
+    return 'Part of ${devo?.title ?? 'this devo'}';
+  }
+  return 'Part ${section.position} of ${devo?.title ?? 'this devo'}';
+}
+
+class _SavedSectionRow extends StatelessWidget {
+  const _SavedSectionRow({
+    required this.devo,
+    required this.section,
+    required this.sectionId,
+    required this.devoId,
+  });
+
+  final Devo? devo;
+  final DevoSection? section;
+  final String sectionId;
+  final String devoId;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = section?.title ?? 'Saved section';
+    final part = section == null
+        ? 'Part of ${devo?.title ?? 'a devo'}'
+        : 'Part ${section!.position} of ${devo?.title ?? 'a devo'}';
+    return ListTile(
+      key: Key('saved-section-$sectionId'),
+      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+      onTap: () => context.push('/devo/$devoId?section=$sectionId'),
+      leading: Container(
+        width: 56,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2C94C),
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontFamily: AppTheme.sans,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      subtitle: Text(
+        part,
+        key: Key('saved-section-parent-$sectionId'),
+        style: const TextStyle(fontFamily: AppTheme.sans, fontSize: 13),
+      ),
+      trailing: section == null || section!.verseRef.isEmpty
+          ? null
+          : Text(
+              section!.verseRef,
+              style: const TextStyle(fontFamily: AppTheme.sans, fontSize: 12),
+            ),
+    );
   }
 }
 

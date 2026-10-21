@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "import": "tsx src/index.ts",
-    "test": "tsx --test src/parse.test.ts src/content.test.ts src/pipeline.test.ts src/devo-tags.test.ts src/rss.test.ts",
+    "test": "tsx --test src/parse.test.ts src/content.test.ts src/sections.test.ts src/pipeline.test.ts src/devo-tags.test.ts src/rss.test.ts",
     "write-tags": "tsx src/write-devo-tags-pg.ts",
     "typecheck": "tsc --noEmit"
   },

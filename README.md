@@ -79,6 +79,8 @@ With no Supabase session, likes and notes stay in `SharedPreferences`. Signing i
 
 `devos.body_md` stores either legacy markdown or a JSON document (`{"v":1,"blocks":[...]}`). The importer writes the JSON form. The app paints headings, paragraphs, bullets, numbers, quotes, callouts, dividers, and inline bold, italic, underline, strikethrough, code, and links. Raw markdown markers are not shown.
 
+A devotion may also have rows in `devo_sections` (title, summary, minutes, verse, body as the same JSON document, and `section_tags`). The importer reads an optional `## App Sections` block at the end of a devotion and upserts on `(devo_id, position)`. The home feed is unchanged. Tapping a banner opens a summary of numbered sections when that devotion has any; tapping a section expands it in place. A devotion with no sections still opens the full text. Favorites and notes can point at a section through nullable `section_id`, and Saved labels those rows with the parent devotion. A null `section_id` is still the whole devotion.
+
 ### Personalize
 
 `supabase/migrations/20261019000003_personalize.sql` adds:
@@ -173,6 +175,8 @@ Hosted Supabase: run the migrations in order in the SQL editor, or `supabase db 
 1. `supabase/migrations/20261018000001_init.sql`
 2. `supabase/migrations/20261018000002_feed_notes_and_images.sql`
 3. `supabase/migrations/20261019000003_personalize.sql`
+4. `supabase/migrations/20261020000004_image_alt.sql`
+5. `supabase/migrations/20261021000005_devo_sections.sql` — adds `devo_sections`, `section_tags`, and nullable `favorites.section_id` / `notes.section_id`. It also replaces `favorites_user_devo_uidx` with two partial unique indexes so one devotion can have a whole-devo favorite and section favorites. That index change is not a pure add, so this file was not applied to the hosted database with the app change. Apply it yourself in the SQL editor or with `supabase db push` when you are ready; until then the app keeps whole-devo favorites and notes on the old columns and keeps section favorites and section notes on the phone.
 
 Plain Postgres 16 with pgvector, from a new database:
 

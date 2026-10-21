@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 import '../../domain/devo_order.dart';
 import '../../domain/edition_calendar.dart';
 import '../../domain/models/devo.dart';
+import '../../domain/models/devo_section.dart';
 import '../../domain/models/user_preferences.dart';
 import '../../domain/repositories/repositories.dart';
 import 'supabase_mappers.dart';
@@ -26,7 +27,9 @@ class SupabaseDevoRepository implements DevoRepository {
         .inFilter('status', readerDevoStatuses)
         .maybeSingle();
     if (row == null) return null;
-    return devoFromRow(row);
+    final devo = devoFromRow(row);
+    final withSections = await _attachSections([devo]);
+    return withSections.single;
   }
 
   @override
@@ -37,7 +40,7 @@ class SupabaseDevoRepository implements DevoRepository {
         .eq('edition_date', dateKeyOf(date))
         .inFilter('status', readerDevoStatuses)
         .order('position', ascending: true);
-    return devosInReadingOrder(rows.map(devoFromRow));
+    return devosInReadingOrder(await _attachSections(rows.map(devoFromRow)));
   }
 
   @override
@@ -78,7 +81,39 @@ class SupabaseDevoRepository implements DevoRepository {
     final rows = await filter
         .order('edition_date', ascending: false)
         .order('position', ascending: true);
-    return devosInReadingOrder(rows.map(devoFromRow));
+    return devosInReadingOrder(await _attachSections(rows.map(devoFromRow)));
+  }
+
+  /// Missing table (migration not applied yet) leaves devotions without sections.
+  Future<List<Devo>> _attachSections(Iterable<Devo> devos) async {
+    final list = devos.toList();
+    if (list.isEmpty) return list;
+    try {
+      final rows = await _client
+          .from('devo_sections')
+          .select(
+            'id, devo_id, position, title, summary, minutes, verse_ref, verse_text, body, section_tags(tags(slug))',
+          )
+          .inFilter('devo_id', list.map((devo) => devo.id).toList())
+          .order('position', ascending: true);
+      final grouped = <String, List<DevoSection>>{};
+      for (final row in rows) {
+        final devoId = row['devo_id']?.toString() ?? '';
+        final section = DevoSection.fromJson(
+          Map<String, dynamic>.from(row),
+          devoId: devoId,
+        ).copyWith(tags: tagsFromJoin(row['section_tags']));
+        grouped.putIfAbsent(devoId, () => []).add(section);
+      }
+      return [
+        for (final devo in list)
+          grouped[devo.id] == null
+              ? devo
+              : devo.copyWith(sections: grouped[devo.id]!),
+      ];
+    } catch (_) {
+      return list;
+    }
   }
 }
 
@@ -97,28 +132,117 @@ class SupabaseFavoritesRepository implements FavoritesRepository {
 
   @override
   Future<Set<String>> load() async {
-    final rows = await _client
-        .from('favorites')
-        .select('devo_id')
-        .eq('user_id', _userId)
-        .not('devo_id', 'is', null);
-    return favoriteIdsFromRows(rows);
+    try {
+      final rows = await _client
+          .from('favorites')
+          .select('devo_id, section_id')
+          .eq('user_id', _userId)
+          .isFilter('section_id', null)
+          .not('devo_id', 'is', null);
+      return favoriteIdsFromRows(rows);
+    } catch (_) {
+      final rows = await _client
+          .from('favorites')
+          .select('devo_id')
+          .eq('user_id', _userId)
+          .not('devo_id', 'is', null);
+      return favoriteIdsFromRows(rows);
+    }
   }
 
   @override
   Future<void> setFavorite(String devoId, bool favorite) async {
-    if (favorite) {
-      await _client.from('favorites').upsert({
-        'user_id': _userId,
-        'devo_id': devoId,
-      }, onConflict: 'user_id,devo_id');
+    try {
+      if (favorite) {
+        await _client.from('favorites').insert({
+          'user_id': _userId,
+          'devo_id': devoId,
+          'section_id': null,
+        });
+        return;
+      }
+      await _client
+          .from('favorites')
+          .delete()
+          .eq('user_id', _userId)
+          .eq('devo_id', devoId)
+          .isFilter('section_id', null);
+    } catch (_) {
+      if (favorite) {
+        await _client.from('favorites').upsert({
+          'user_id': _userId,
+          'devo_id': devoId,
+        }, onConflict: 'user_id,devo_id');
+        return;
+      }
+      await _client
+          .from('favorites')
+          .delete()
+          .eq('user_id', _userId)
+          .eq('devo_id', devoId);
+    }
+  }
+}
+
+class SupabaseSectionFavoritesRepository implements SectionFavoritesRepository {
+  const SupabaseSectionFavoritesRepository(this._client, this._local);
+
+  final SupabaseClient _client;
+  final SectionFavoritesRepository _local;
+
+  String? get _userId => _client.auth.currentUser?.id;
+
+  @override
+  Future<List<SectionFavorite>> load() async {
+    final userId = _userId;
+    if (userId == null) return _local.load();
+    try {
+      final rows = await _client
+          .from('favorites')
+          .select('devo_id, section_id')
+          .eq('user_id', userId)
+          .not('section_id', 'is', null);
+      return [
+        for (final row in rows)
+          if (row['section_id'] != null && row['devo_id'] != null)
+            SectionFavorite(
+              devoId: row['devo_id'].toString(),
+              sectionId: row['section_id'].toString(),
+            ),
+      ];
+    } catch (_) {
+      return _local.load();
+    }
+  }
+
+  @override
+  Future<void> setFavorite(
+    String devoId,
+    String sectionId,
+    bool favorite,
+  ) async {
+    final userId = _userId;
+    if (userId == null) {
+      await _local.setFavorite(devoId, sectionId, favorite);
       return;
     }
-    await _client
-        .from('favorites')
-        .delete()
-        .eq('user_id', _userId)
-        .eq('devo_id', devoId);
+    try {
+      if (!favorite) {
+        await _client
+            .from('favorites')
+            .delete()
+            .eq('user_id', userId)
+            .eq('section_id', sectionId);
+        return;
+      }
+      await _client.from('favorites').insert({
+        'user_id': userId,
+        'devo_id': devoId,
+        'section_id': sectionId,
+      });
+    } catch (_) {
+      await _local.setFavorite(devoId, sectionId, favorite);
+    }
   }
 }
 

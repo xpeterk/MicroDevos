@@ -94,6 +94,46 @@ bool _skipsSentenceBreak(String text, RegExpMatch match) {
 bool _isDigit(String char) =>
     char.length == 1 && char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;
 
+/// A section banner reuses the parent devotion's frame with its own title.
+Devo bannerDisplayDevo(Devo devo, {String? title, String? summary}) {
+  if (title == null && summary == null) return devo;
+  return Devo(
+    id: devo.id,
+    title: title ?? devo.title,
+    hook: summary == null ? devo.hook : '',
+    bodyMd: devo.bodyMd,
+    takeaway: summary ?? devo.takeaway,
+    verseText: devo.verseText,
+    verseRef: devo.verseRef,
+    scriptures: devo.scriptures,
+    editionDate: devo.editionDate,
+    position: devo.position,
+    status: devo.status,
+    tags: devo.tags,
+    sections: devo.sections,
+    sourceUrl: devo.sourceUrl,
+    editionUrl: devo.editionUrl,
+    stars: devo.stars,
+    notionPageId: devo.notionPageId,
+    imageUrl: devo.imageUrl,
+    imageAlt: devo.imageAlt,
+  );
+}
+
+class BannerScope extends InheritedWidget {
+  const BannerScope({required this.pillLabel, required super.child, super.key});
+
+  final String? pillLabel;
+
+  static BannerScope? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<BannerScope>();
+  }
+
+  @override
+  bool updateShouldNotify(BannerScope oldWidget) =>
+      pillLabel != oldWidget.pillLabel;
+}
+
 class StyleBanner extends StatelessWidget {
   const StyleBanner({
     required this.devo,
@@ -103,6 +143,10 @@ class StyleBanner extends StatelessWidget {
     this.onDoubleTap,
     this.hero = true,
     this.burstToken = 0,
+    this.titleOverride,
+    this.summaryOverride,
+    this.pillLabel,
+    this.bannerKey,
     super.key,
   });
 
@@ -113,22 +157,34 @@ class StyleBanner extends StatelessWidget {
   final VoidCallback? onDoubleTap;
   final bool hero;
   final int burstToken;
+  final String? titleOverride;
+  final String? summaryOverride;
+  final String? pillLabel;
+  final String? bannerKey;
 
   @override
   Widget build(BuildContext context) {
-    final frame = bannerFrameFor(devo.position);
+    final shown = bannerDisplayDevo(
+      devo,
+      title: titleOverride,
+      summary: summaryOverride,
+    );
+    final frame = bannerFrameFor(shown.position);
     final banner = GestureDetector(
-      key: Key('banner-${devo.id}'),
+      key: Key(bannerKey ?? 'banner-${devo.id}'),
       onTap: onTap,
       onDoubleTap: onDoubleTap,
       child: SizedBox(
         height: kStyleBannerHeight,
         width: double.infinity,
-        child: _Frame(
-          devo: devo,
-          total: total,
-          frame: frame,
-          tagLabel: tagLabel,
+        child: BannerScope(
+          pillLabel: pillLabel,
+          child: _Frame(
+            devo: shown,
+            total: total,
+            frame: frame,
+            tagLabel: tagLabel,
+          ),
         ),
       ),
     );
@@ -873,7 +929,9 @@ class _TopRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = total <= 0 ? devo.position : total;
-    final label = 'DEVO ${devo.position} OF $count';
+    final label =
+        BannerScope.maybeOf(context)?.pillLabel ??
+        'DEVO ${devo.position} OF $count';
     return Row(
       children: [
         Container(

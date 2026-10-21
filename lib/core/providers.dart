@@ -22,6 +22,7 @@ import '../domain/enrichment/tagging_provider.dart';
 import '../domain/models/bible_version.dart';
 import '../domain/models/devo.dart';
 import '../domain/models/devo_note.dart';
+import '../domain/models/devo_section.dart';
 import '../domain/models/user_preferences.dart';
 import '../domain/repositories/repositories.dart';
 import 'config/app_config.dart';
@@ -295,6 +296,55 @@ class FavoritesController extends AsyncNotifier<Set<String>> {
 final favoritesProvider =
     AsyncNotifierProvider<FavoritesController, Set<String>>(
       FavoritesController.new,
+    );
+
+final sectionFavoritesRepositoryProvider = Provider<SectionFavoritesRepository>(
+  (ref) {
+    final config = ref.watch(appConfigProvider);
+    final client = ref.watch(supabaseClientProvider);
+    final user = client?.auth.currentUser;
+    final local = LocalSectionFavoritesRepository(
+      ref.watch(sharedPreferencesProvider),
+    );
+    if (config.useSupabase && client != null && user != null) {
+      return SupabaseSectionFavoritesRepository(client, local);
+    }
+    return local;
+  },
+);
+
+class SectionFavoritesController extends AsyncNotifier<List<SectionFavorite>> {
+  @override
+  Future<List<SectionFavorite>> build() {
+    ref.watch(authStateProvider);
+    return ref.watch(sectionFavoritesRepositoryProvider).load();
+  }
+
+  bool contains(String sectionId) {
+    return (state.value ?? const <SectionFavorite>[]).any(
+      (item) => item.sectionId == sectionId,
+    );
+  }
+
+  Future<void> toggle(String devoId, String sectionId) async {
+    final repo = ref.read(sectionFavoritesRepositoryProvider);
+    final current = [...state.value ?? await future];
+    final liked = current.any((item) => item.sectionId == sectionId);
+    final next = [
+      for (final item in current)
+        if (item.sectionId != sectionId) item,
+    ];
+    if (!liked) {
+      next.add(SectionFavorite(devoId: devoId, sectionId: sectionId));
+    }
+    state = AsyncData(next);
+    await repo.setFavorite(devoId, sectionId, !liked);
+  }
+}
+
+final sectionFavoritesProvider =
+    AsyncNotifierProvider<SectionFavoritesController, List<SectionFavorite>>(
+      SectionFavoritesController.new,
     );
 
 class PreferencesController extends AsyncNotifier<UserPreferences> {

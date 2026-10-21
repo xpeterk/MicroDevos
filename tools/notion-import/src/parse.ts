@@ -1,4 +1,5 @@
 import { encodeContent } from "./content.js";
+import { splitAppSections } from "./sections.js";
 import type { CardMeta, ImportDecision, ParsedDevo, ScriptureQuote } from "./types.js";
 
 const numberedHeading = /^##\s+(\d+)\s*[·•|\-–—]\s+(.+?)\s*$/gm;
@@ -73,6 +74,7 @@ export function parseDevoMarkdown(markdown: string, meta: CardMeta = {}): Parsed
       hook,
       body_md: encodeContent(section.body),
       takeaway: section.takeaway,
+      sections: section.sections,
       verse_text: section.verseText,
       verse_ref: section.verseRef,
       scriptures: unique([...glance, ...section.scriptures]),
@@ -89,6 +91,8 @@ export function parseDevoMarkdown(markdown: string, meta: CardMeta = {}): Parsed
 }
 
 function parseSection(section: string) {
+  const split = splitAppSections(section);
+  section = split.prose;
   const callout = /:::callout\s*\n([\s\S]*?)\n:::/.exec(section);
   const verse = callout ? verseFromCallout(callout[1]) : { text: "", reference: "" };
   let body = section;
@@ -161,6 +165,7 @@ function parseSection(section: string) {
     verseText: verse.text,
     verseRef: verse.reference,
     scriptures,
+    sections: split.sections,
   };
 }
 

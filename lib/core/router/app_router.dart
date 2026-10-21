@@ -55,8 +55,10 @@ GoRouter buildRouter() {
       GoRoute(
         path: '/devo/:id',
         parentNavigatorKey: rootNavigatorKey,
-        builder: (context, state) =>
-            DevoDetailScreen(id: state.pathParameters['id']!),
+        builder: (context, state) => DevoDetailScreen(
+          id: state.pathParameters['id']!,
+          initialSectionId: state.uri.queryParameters['section'],
+        ),
       ),
       GoRoute(
         path: '/settings',

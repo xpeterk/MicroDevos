@@ -457,6 +457,41 @@
     "tags": [
       "prayer",
       "trust"
+    ],
+    "sections": [
+      {
+        "id": "fri-8-s1",
+        "position": 1,
+        "title": "Come Before You Feel Worthy",
+        "summary": "The throne of grace is for people who still need mercy.",
+        "minutes": 2,
+        "verse_ref": "Hebrews 4:16",
+        "verse_text": "Let us therefore come boldly unto the throne of grace, that we may obtain mercy, and find grace to help in time of need.",
+        "body": "{\"v\":1,\"blocks\":[{\"type\":\"paragraph\",\"runs\":[{\"text\":\"Mercy meets the person who comes before they feel ready.\"}]}]}",
+        "tags": ["prayer", "trust"]
+      },
+      {
+        "id": "fri-8-s2",
+        "position": 2,
+        "title": "Ask for the Next Hour",
+        "summary": "Wisdom for this hour is given without a scolding.",
+        "minutes": 1,
+        "verse_ref": "James 1:5",
+        "verse_text": "If any of you lack wisdom, let him ask of God, that giveth to all men liberally, and upbraideth not.",
+        "body": "{\"v\":1,\"blocks\":[{\"type\":\"paragraph\",\"runs\":[{\"text\":\"Ask for the wisdom the next hour needs, and then take that hour.\"}]}]}",
+        "tags": ["prayer", "hope"]
+      },
+      {
+        "id": "fri-8-s3",
+        "position": 3,
+        "title": "Mercy Meets You There",
+        "summary": "You approach first. Mercy is what you find.",
+        "minutes": 2,
+        "verse_ref": "Hebrews 4:16",
+        "verse_text": "Let us therefore come boldly unto the throne of grace.",
+        "body": "{\"v\":1,\"blocks\":[{\"type\":\"paragraph\",\"runs\":[{\"text\":\"You do not wait until you feel ready to draw near.\"}]}]}",
+        "tags": ["trust", "peace"]
+      }
     ]
   }
 ]

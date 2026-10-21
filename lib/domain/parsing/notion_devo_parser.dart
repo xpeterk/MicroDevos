@@ -1,5 +1,6 @@
 import '../content/rich_document.dart';
 import '../models/scripture_quote.dart';
+import 'app_sections.dart';
 
 /// Metadata from a Micro Devos Cards row. The page body still has to be parsed.
 class NotionCardMeta {
@@ -47,6 +48,7 @@ class ParsedDevo {
     this.stars,
     this.status,
     this.notionPageId,
+    this.sections = const [],
   });
 
   final String title;
@@ -63,6 +65,7 @@ class ParsedDevo {
   final int? stars;
   final String? status;
   final String? notionPageId;
+  final List<ParsedAppSection> sections;
 
   Map<String, dynamic> toJson() => {
     'title': title,
@@ -182,6 +185,7 @@ class NotionDevoParser {
           stars: card.stars,
           status: card.status,
           notionPageId: card.notionPageId,
+          sections: parsed.sections,
         ),
       );
     }
@@ -229,6 +233,8 @@ class NotionDevoParser {
   }
 
   static _Section _parseSection(String section) {
+    final split = splitAppSections(section);
+    section = split.prose;
     final callout = RegExp(r':::callout\s*\n([\s\S]*?)\n:::')
         .firstMatch(section);
     final verse = callout == null
@@ -322,6 +328,7 @@ class NotionDevoParser {
       verseText: verse.text,
       verseRef: verse.reference,
       scriptures: scriptures,
+      sections: split.sections,
     );
   }
 
@@ -458,6 +465,7 @@ class _Section {
     required this.verseText,
     required this.verseRef,
     required this.scriptures,
+    this.sections = const [],
   });
 
   final String body;
@@ -465,6 +473,7 @@ class _Section {
   final String verseText;
   final String verseRef;
   final List<ScriptureQuote> scriptures;
+  final List<ParsedAppSection> sections;
 }
 
 class _Verse {

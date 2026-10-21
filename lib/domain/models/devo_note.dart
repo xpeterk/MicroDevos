@@ -21,6 +21,7 @@ class DevoNote {
     this.anchorStart,
     this.anchorEnd,
     this.section,
+    this.sectionId,
   });
 
   final String id;
@@ -35,6 +36,9 @@ class DevoNote {
   /// `hook`, `body`, `takeaway`, `verse`, or `scripture`. Null attaches the
   /// note to the whole devotion.
   final String? section;
+
+  /// Set when the note belongs to one section of [devoId].
+  final String? sectionId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -52,6 +56,7 @@ class DevoNote {
     int? anchorStart,
     int? anchorEnd,
     String? section,
+    String? sectionId,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool clearAnchor = false,
@@ -66,6 +71,7 @@ class DevoNote {
       anchorStart: clearAnchor ? null : anchorStart ?? this.anchorStart,
       anchorEnd: clearAnchor ? null : anchorEnd ?? this.anchorEnd,
       section: clearAnchor ? null : section ?? this.section,
+      sectionId: sectionId ?? this.sectionId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -82,6 +88,7 @@ class DevoNote {
       anchorStart: json['anchor_start'] as int?,
       anchorEnd: json['anchor_end'] as int?,
       section: json['section'] as String?,
+      sectionId: json['section_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -97,6 +104,7 @@ class DevoNote {
     'anchor_start': anchorStart,
     'anchor_end': anchorEnd,
     'section': section,
+    'section_id': sectionId,
     'created_at': createdAt.toUtc().toIso8601String(),
     'updated_at': updatedAt.toUtc().toIso8601String(),
   };

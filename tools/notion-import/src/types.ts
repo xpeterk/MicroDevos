@@ -1,3 +1,5 @@
+import type { ParsedAppSection } from "./sections.js";
+
 export type ScriptureQuote = { reference: string; text: string };
 
 export type CardMeta = {
@@ -24,6 +26,7 @@ export type ParsedDevo = {
   stars: number | null;
   status: string | null;
   notion_page_id: string | null;
+  sections?: ParsedAppSection[];
 };
 
 export type ImportDecision =

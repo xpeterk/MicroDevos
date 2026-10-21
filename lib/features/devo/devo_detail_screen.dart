@@ -13,6 +13,7 @@ import '../browse/banner.dart';
 import '../browse/browse_state.dart';
 import '../browse/note_pane.dart';
 import '../browse/style_banner.dart';
+import 'section_detail.dart';
 
 /// The newsletter picture is the header inside the full devotion, except on
 /// the photo and duotone frames, which already show that picture large.
@@ -24,9 +25,10 @@ bool showsNewsletterImage(Devo devo) {
 }
 
 class DevoDetailScreen extends ConsumerWidget {
-  const DevoDetailScreen({required this.id, super.key});
+  const DevoDetailScreen({required this.id, this.initialSectionId, super.key});
 
   final String id;
+  final String? initialSectionId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -50,7 +52,23 @@ class DevoDetailScreen extends ConsumerWidget {
                   'It may have moved, or this sample set does not include it.',
             );
           }
-          return _Detail(devo: value);
+          if (value.sections.isEmpty) return _Detail(devo: value);
+          final dayCount =
+              ref
+                  .watch(todayProvider)
+                  .asData
+                  ?.value
+                  .devos
+                  .where(
+                    (item) => isSameDate(item.editionDate, value.editionDate),
+                  )
+                  .length ??
+              8;
+          return SectionDetail(
+            devo: value,
+            dayCount: dayCount,
+            initialSectionId: initialSectionId,
+          );
         },
       ),
     );

@@ -65,11 +65,28 @@ class SyncingNotesRepository implements NotesRepository {
   @override
   Future<List<DevoNote>> load() async {
     await _pushLocal();
-    return remote.load();
+    final remoteNotes = await remote.load();
+    final pending = await local.load();
+    final remoteIds = {for (final note in remoteNotes) note.id};
+    final extras = pending.where(
+      (note) => note.sectionId != null && !remoteIds.contains(note.id),
+    );
+    if (extras.isEmpty) return remoteNotes;
+    final merged = [...remoteNotes, ...extras];
+    merged.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return merged;
   }
 
   @override
-  Future<void> upsert(DevoNote note) => remote.upsert(note);
+  Future<void> upsert(DevoNote note) async {
+    try {
+      await remote.upsert(note);
+      if (note.sectionId != null) await local.delete(note.id);
+    } catch (_) {
+      if (note.sectionId == null) rethrow;
+      await local.upsert(note);
+    }
+  }
 
   @override
   Future<void> delete(String id) => remote.delete(id);

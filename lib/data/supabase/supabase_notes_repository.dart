@@ -51,6 +51,7 @@ class SupabaseNotesRepository implements NotesRepository {
       'anchor_start': note.anchorStart,
       'anchor_end': note.anchorEnd,
       'section': note.section,
+      if (note.sectionId != null) 'section_id': note.sectionId,
     };
   }
 }
