@@ -13,6 +13,24 @@ export type TagLink = { devo_id: string; tag_id: string };
 /** Same conflict target the Supabase client uses for devo_tags. */
 export const DEVO_TAGS_ON_CONFLICT = "devo_id,tag_id";
 
+/** Slugs the catalog does not know. Callers skip these and log them. */
+export function unknownTagSlugs(
+  slugs: Iterable<string>,
+  tagIds: Map<string, string>,
+): string[] {
+  const missing = new Set<string>();
+  for (const slug of slugs) {
+    if (!tagIds.has(slug)) missing.add(slug);
+  }
+  return [...missing].sort();
+}
+
+export function logUnknownTags(slugs: Iterable<string>): void {
+  for (const slug of slugs) {
+    console.warn(`Skipping unknown tag "${slug}"`);
+  }
+}
+
 export function savedKey(notionPageId: string | null, position: number): string {
   return `${notionPageId}:${position}`;
 }

@@ -33,13 +33,14 @@ class FeedView extends ConsumerWidget {
     final liked = ref.watch(favoritesProvider).value ?? const <String>{};
     final notes = ref.watch(notesProvider).value ?? const <DevoNote>[];
     final noted = {for (final note in notes) note.targetId};
+    final catalog = ref.watch(tagCatalogProvider).asData?.value;
     final visible = applyBrowseFilter(
       devos: devos,
       filter: filter,
       likedIds: liked,
       notedIds: noted,
+      catalog: catalog?.tags ?? const [],
     );
-    final catalog = ref.watch(tagCatalogProvider).asData?.value;
 
     return CenteredColumn(
       child: CustomScrollView(

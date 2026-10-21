@@ -23,6 +23,7 @@ import '../domain/models/bible_version.dart';
 import '../domain/models/devo.dart';
 import '../domain/models/devo_note.dart';
 import '../domain/models/devo_section.dart';
+import '../domain/models/tag.dart';
 import '../domain/models/user_preferences.dart';
 import '../domain/repositories/repositories.dart';
 import 'config/app_config.dart';
@@ -268,8 +269,24 @@ final editionDatesProvider = FutureProvider<List<DateTime>>((ref) async {
   return repo.editionDates();
 });
 
-final tagCatalogProvider = FutureProvider<SampleCatalog>((ref) {
-  return ref.watch(sampleCatalogProvider.future);
+final tagCatalogProvider = FutureProvider<SampleCatalog>((ref) async {
+  final sample = await ref.watch(sampleCatalogProvider.future);
+  final config = ref.watch(appConfigProvider);
+  final client = ref.watch(supabaseClientProvider);
+  if (!config.useSupabase || client == null) return sample;
+  try {
+    final rows = await client
+        .from('tags')
+        .select('slug, label, category, parent_slug, is_filter')
+        .order('label');
+    final tags = [
+      for (final row in rows) Tag.fromJson(Map<String, dynamic>.from(row)),
+    ];
+    if (tags.isEmpty) return sample;
+    return SampleCatalog(devos: sample.devos, tags: tags);
+  } catch (_) {
+    return sample;
+  }
 });
 
 class FavoritesController extends AsyncNotifier<Set<String>> {

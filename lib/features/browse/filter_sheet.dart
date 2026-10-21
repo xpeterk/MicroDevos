@@ -32,12 +32,16 @@ class FilterSheet extends ConsumerWidget {
     final filter = ref.watch(browseFilterProvider);
     final catalog = ref.watch(tagCatalogProvider).asData?.value;
     final tags = catalog?.tags ?? const <Tag>[];
-    final emotions = [
+    final filters = [
       for (final tag in tags)
+        if (tag.isFilter) tag,
+    ];
+    final emotions = [
+      for (final tag in filters)
         if (tag.category == 'emotion') tag,
     ];
     final interests = [
-      for (final tag in tags)
+      for (final tag in filters)
         if (tag.category == 'topic' || tag.category == 'life_situation') tag,
     ];
     final today = ref.watch(todayProvider).asData?.value;
@@ -53,6 +57,7 @@ class FilterSheet extends ConsumerWidget {
             filter: filter,
             likedIds: liked,
             notedIds: noted,
+            catalog: tags,
           ).length;
     final scheme = Theme.of(context).colorScheme;
 
@@ -106,6 +111,7 @@ class FilterSheet extends ConsumerWidget {
                 children: [
                   for (final tag in emotions)
                     FilterChip(
+                      key: ValueKey('filter-tag-${tag.slug}'),
                       label: Text(tag.label),
                       selected: filter.tags.contains(tag.slug),
                       onSelected: (_) {
@@ -156,6 +162,7 @@ class FilterSheet extends ConsumerWidget {
                 children: [
                   for (final tag in interests)
                     FilterChip(
+                      key: ValueKey('filter-tag-${tag.slug}'),
                       label: Text(tag.label),
                       selected: filter.interests.contains(tag.slug),
                       onSelected: (_) => ref

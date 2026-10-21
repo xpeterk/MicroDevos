@@ -2,81 +2,519 @@
   {
     "slug": "courage",
     "label": "Courage",
-    "category": "emotion"
+    "category": "emotion",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "anxiety",
     "label": "Anxiety",
-    "category": "emotion"
+    "category": "emotion",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "fear",
     "label": "Fear",
-    "category": "emotion"
+    "category": "emotion",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "hope",
     "label": "Hope",
-    "category": "emotion"
+    "category": "emotion",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "peace",
     "label": "Peace",
-    "category": "emotion"
+    "category": "emotion",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "gratitude",
     "label": "Gratitude",
-    "category": "emotion"
+    "category": "emotion",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "grief",
     "label": "Grief",
-    "category": "emotion"
+    "category": "emotion",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "trust",
     "label": "Trust",
-    "category": "topic"
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "prayer",
     "label": "Prayer",
-    "category": "topic"
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "rest",
     "label": "Rest",
-    "category": "topic"
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "scripture",
     "label": "Scripture",
-    "category": "topic"
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "waiting",
     "label": "Waiting",
-    "category": "topic"
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "perseverance",
     "label": "Perseverance",
-    "category": "topic"
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "identity",
     "label": "Identity",
-    "category": "topic"
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "work",
     "label": "Work",
-    "category": "life_situation"
+    "category": "life_situation",
+    "is_filter": true,
+    "parent_slug": null
   },
   {
     "slug": "family",
     "label": "Family",
-    "category": "life_situation"
+    "category": "life_situation",
+    "is_filter": true,
+    "parent_slug": null
+  },
+  {
+    "slug": "gospel-faith",
+    "label": "Gospel & Faith",
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
+  },
+  {
+    "slug": "love-kindness",
+    "label": "Love & Kindness",
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
+  },
+  {
+    "slug": "church-community",
+    "label": "Church & Community",
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
+  },
+  {
+    "slug": "grace-holiness",
+    "label": "Grace & Holiness",
+    "category": "topic",
+    "is_filter": true,
+    "parent_slug": null
+  },
+  {
+    "slug": "action",
+    "label": "Action",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "courage"
+  },
+  {
+    "slug": "belonging",
+    "label": "Belonging",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "identity"
+  },
+  {
+    "slug": "calling",
+    "label": "Calling",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "work"
+  },
+  {
+    "slug": "character",
+    "label": "Character",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "identity"
+  },
+  {
+    "slug": "church",
+    "label": "Church",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "church-community"
+  },
+  {
+    "slug": "comfort",
+    "label": "Comfort",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "peace"
+  },
+  {
+    "slug": "communion",
+    "label": "Communion",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "church-community"
+  },
+  {
+    "slug": "community",
+    "label": "Community",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "church-community"
+  },
+  {
+    "slug": "discipline",
+    "label": "Discipline",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "perseverance"
+  },
+  {
+    "slug": "encouragement",
+    "label": "Encouragement",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "hope"
+  },
+  {
+    "slug": "endurance",
+    "label": "Endurance",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "perseverance"
+  },
+  {
+    "slug": "evangelism",
+    "label": "Evangelism",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "gospel-faith"
+  },
+  {
+    "slug": "faith",
+    "label": "Faith",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "trust"
+  },
+  {
+    "slug": "faithfulness",
+    "label": "Faithfulness",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "trust"
+  },
+  {
+    "slug": "foundation",
+    "label": "Foundation",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "trust"
+  },
+  {
+    "slug": "freedom",
+    "label": "Freedom",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "peace"
+  },
+  {
+    "slug": "friendship",
+    "label": "Friendship",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "church-community"
+  },
+  {
+    "slug": "fruitfulness",
+    "label": "Fruitfulness",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "work"
+  },
+  {
+    "slug": "gospel",
+    "label": "Gospel",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "gospel-faith"
+  },
+  {
+    "slug": "grace",
+    "label": "Grace",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "grace-holiness"
+  },
+  {
+    "slug": "healing",
+    "label": "Healing",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "hope"
+  },
+  {
+    "slug": "history",
+    "label": "History",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "scripture"
+  },
+  {
+    "slug": "holiness",
+    "label": "Holiness",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "grace-holiness"
+  },
+  {
+    "slug": "honesty",
+    "label": "Honesty",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "courage"
+  },
+  {
+    "slug": "honor",
+    "label": "Honor",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "identity"
+  },
+  {
+    "slug": "humility",
+    "label": "Humility",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "grace-holiness"
+  },
+  {
+    "slug": "influence",
+    "label": "Influence",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "work"
+  },
+  {
+    "slug": "invitation",
+    "label": "Invitation",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "gospel-faith"
+  },
+  {
+    "slug": "jesus",
+    "label": "Jesus",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "gospel-faith"
+  },
+  {
+    "slug": "justice",
+    "label": "Justice",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "love-kindness"
+  },
+  {
+    "slug": "kindness",
+    "label": "Kindness",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "love-kindness"
+  },
+  {
+    "slug": "leadership",
+    "label": "Leadership",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "work"
+  },
+  {
+    "slug": "legacy",
+    "label": "Legacy",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "family"
+  },
+  {
+    "slug": "love",
+    "label": "Love",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "love-kindness"
+  },
+  {
+    "slug": "power",
+    "label": "Power",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "courage"
+  },
+  {
+    "slug": "priorities",
+    "label": "Priorities",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "work"
+  },
+  {
+    "slug": "protection",
+    "label": "Protection",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "trust"
+  },
+  {
+    "slug": "providence",
+    "label": "Providence",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "trust"
+  },
+  {
+    "slug": "refuge",
+    "label": "Refuge",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "peace"
+  },
+  {
+    "slug": "relationships",
+    "label": "Relationships",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "family"
+  },
+  {
+    "slug": "salvation",
+    "label": "Salvation",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "gospel-faith"
+  },
+  {
+    "slug": "security",
+    "label": "Security",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "trust"
+  },
+  {
+    "slug": "servanthood",
+    "label": "Servanthood",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "grace-holiness"
+  },
+  {
+    "slug": "service",
+    "label": "Service",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "work"
+  },
+  {
+    "slug": "small-things",
+    "label": "Small Things",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "work"
+  },
+  {
+    "slug": "strength",
+    "label": "Strength",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "courage"
+  },
+  {
+    "slug": "surrender",
+    "label": "Surrender",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "trust"
+  },
+  {
+    "slug": "trouble",
+    "label": "Trouble",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "anxiety"
+  },
+  {
+    "slug": "value",
+    "label": "Value",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "identity"
+  },
+  {
+    "slug": "vulnerability",
+    "label": "Vulnerability",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "fear"
+  },
+  {
+    "slug": "weakness",
+    "label": "Weakness",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "fear"
+  },
+  {
+    "slug": "welcome",
+    "label": "Welcome",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "church-community"
+  },
+  {
+    "slug": "worship",
+    "label": "Worship",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "church-community"
+  },
+  {
+    "slug": "worth",
+    "label": "Worth",
+    "category": "topic",
+    "is_filter": false,
+    "parent_slug": "identity"
   }
 ]

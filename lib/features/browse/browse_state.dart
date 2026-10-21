@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/devo.dart';
 import '../../domain/models/devo_note.dart';
+import '../../domain/models/tag.dart';
 
 class BrowseFilter {
   const BrowseFilter({
@@ -46,18 +47,22 @@ class BrowseFilter {
   }
 }
 
-/// Tags match if the devotion has any selected tag. Interests work the same
-/// way. The two sets, liked, and notes all have to agree. Age is stored for
-/// the sheet and does not hide devotions yet.
+/// A selected filter matches the devotion or any of its sections when the
+/// tag is on that row, or when a child of the selected tag is. The tag set
+/// and the interest set both have to agree. Liked and notes do too. Age is
+/// stored for the sheet and does not hide devotions yet.
 List<Devo> applyBrowseFilter({
   required List<Devo> devos,
   required BrowseFilter filter,
   required Set<String> likedIds,
   required Set<String> notedIds,
+  List<Tag> catalog = const [],
 }) {
+  final tags = expandTagSelection(filter.tags, catalog);
+  final interests = expandTagSelection(filter.interests, catalog);
   return [
     for (final devo in devos)
-      if (_matches(devo, filter, likedIds, notedIds)) devo,
+      if (_matches(devo, filter, likedIds, notedIds, tags, interests)) devo,
   ];
 }
 
@@ -66,16 +71,17 @@ bool _matches(
   BrowseFilter filter,
   Set<String> likedIds,
   Set<String> notedIds,
+  Set<String> tags,
+  Set<String> interests,
 ) {
   if (filter.onlyLiked && !likedIds.contains(devo.id)) return false;
   if (filter.onlyNotes && !notedIds.contains(devo.id)) return false;
-  if (filter.tags.isNotEmpty && !devo.tags.any(filter.tags.contains)) {
-    return false;
-  }
-  if (filter.interests.isNotEmpty &&
-      !devo.tags.any(filter.interests.contains)) {
-    return false;
-  }
+  final slugs = <String>{
+    ...devo.tags,
+    for (final section in devo.sections) ...section.tags,
+  };
+  if (tags.isNotEmpty && !slugs.any(tags.contains)) return false;
+  if (interests.isNotEmpty && !slugs.any(interests.contains)) return false;
   return true;
 }
 

@@ -5,7 +5,7 @@ import { DisabledEmbeddingProvider, KeywordTaggingProvider } from "./enrichment.
 import { loadFixtureCards } from "./fixture.js";
 import { NotionClient, readStatus, readTitle } from "./notion.js";
 import { decide } from "./parse.js";
-import { buildDevoTagLinks, savedKey } from "./devo-tags.js";
+import { buildDevoTagLinks, logUnknownTags, savedKey, unknownTagSlugs } from "./devo-tags.js";
 import { UPSERT_ON_CONFLICT, planImport, toUpsertRows, type ImportedDevo, type SourceCard } from "./pipeline.js";
 import {
   SECTION_TAGS_ON_CONFLICT,
@@ -126,6 +126,10 @@ async function upsertNotionRows(imported: ImportedDevo[], skipped: number) {
   const { data: tagRows, error: tagError } = await supabase.from("tags").select("id, slug");
   if (tagError) throw tagError;
   const tagIds = new Map((tagRows ?? []).map((tag) => [tag.slug as string, tag.id as string]));
+  logUnknownTags(unknownTagSlugs([
+    ...imported.flatMap((devo) => devo.tags),
+    ...imported.flatMap((devo) => (devo.sections ?? []).flatMap((section) => section.tags)),
+  ], tagIds));
   const links = buildDevoTagLinks(imported, saved, tagIds);
   if (links.length > 0) {
     const { error: linkError } = await supabase

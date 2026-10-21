@@ -177,6 +177,7 @@ Hosted Supabase: run the migrations in order in the SQL editor, or `supabase db 
 3. `supabase/migrations/20261019000003_personalize.sql`
 4. `supabase/migrations/20261020000004_image_alt.sql`
 5. `supabase/migrations/20261021000005_devo_sections.sql` — adds `devo_sections`, `section_tags`, and nullable `favorites.section_id` / `notes.section_id`. It also replaces `favorites_user_devo_uidx` with two partial unique indexes so one devotion can have a whole-devo favorite and section favorites. That index change is not a pure add, so this file was not applied to the hosted database with the app change. Apply it yourself in the SQL editor or with `supabase db push` when you are ready; until then the app keeps whole-devo favorites and notes on the old columns and keeps section favorites and section notes on the phone.
+6. `supabase/migrations/20261022000006_tag_hierarchy.sql` — adds nullable `tags.parent_slug` and `tags.is_filter` (default false), inserts the four filter topics Gospel & Faith, Love & Kindness, Church & Community, and Grace & Holiness, and sets `is_filter` on those four plus the original 16. The 54 section tags point at a parent. The filter sheet lists only `is_filter` tags, and choosing one also matches a child tag on a devotion or a section. This file was not applied to the hosted database with the app change.
 
 Plain Postgres 16 with pgvector, from a new database:
 
