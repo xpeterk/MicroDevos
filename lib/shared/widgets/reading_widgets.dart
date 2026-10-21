@@ -1,6 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../domain/content/rich_document.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/models/scripture_quote.dart';
 
@@ -257,81 +259,143 @@ class DevoBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final blocks = markdown.split(RegExp(r'\n\s*\n'));
+    final blocks = parseContent(markdown);
     return Column(
+      key: const Key('devo-body'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final block in blocks)
-          if (block.trim().isNotEmpty) ...[
-            _Block(text: block.trim()),
-            const SizedBox(height: 16),
-          ],
+        for (final block in blocks) ...[
+          _ContentBlockView(block: block),
+          if (block.kind != ContentKind.divider) const SizedBox(height: 14),
+        ],
       ],
     );
   }
 }
 
-class _Block extends StatelessWidget {
-  const _Block({required this.text});
+class _ContentBlockView extends StatelessWidget {
+  const _ContentBlockView({required this.block});
 
-  final String text;
+  final ContentBlock block;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    if (text.startsWith('### ')) {
-      return Text(
-        text.substring(4),
-        style: Theme.of(context).textTheme.titleMedium
-            ?.copyWith(fontFamily: AppTheme.serif, fontWeight: FontWeight.w600),
-      );
+    final body = Theme.of(context).textTheme.bodyLarge;
+    switch (block.kind) {
+      case ContentKind.divider:
+        return Divider(color: scheme.outline, height: 24);
+      case ContentKind.heading:
+        final size = switch (block.level) {
+          1 => 28.0,
+          2 => 22.0,
+          _ => 18.0,
+        };
+        return Text.rich(
+          TextSpan(children: _runs(context, block.runs, body)),
+          style: TextStyle(
+            fontFamily: AppTheme.serif,
+            fontSize: size,
+            height: 1.2,
+            fontWeight: FontWeight.w600,
+            color: scheme.onSurface,
+          ),
+        );
+      case ContentKind.quote:
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          decoration: BoxDecoration(
+            color: scheme.primaryContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text.rich(
+            TextSpan(
+              text: '“',
+              children: [
+                ..._runs(context, block.runs, body),
+                const TextSpan(text: '”'),
+              ],
+            ),
+            style: body?.copyWith(fontStyle: FontStyle.italic),
+          ),
+        );
+      case ContentKind.callout:
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        final fill = dark ? const Color(0xFF24382C) : const Color(0xFFE7F0E4);
+        final ink = dark ? const Color(0xFFE7F0E4) : const Color(0xFF24382C);
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text.rich(
+            TextSpan(children: _runs(context, block.runs, body)),
+            style: body?.copyWith(color: ink),
+          ),
+        );
+      case ContentKind.bullet:
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('•  ', style: body),
+            Expanded(
+              child: Text.rich(
+                TextSpan(children: _runs(context, block.runs, body)),
+              ),
+            ),
+          ],
+        );
+      case ContentKind.number:
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${block.index ?? 1}.  ', style: body),
+            Expanded(
+              child: Text.rich(
+                TextSpan(children: _runs(context, block.runs, body)),
+              ),
+            ),
+          ],
+        );
+      case ContentKind.paragraph:
+        return Text.rich(TextSpan(children: _runs(context, block.runs, body)));
     }
-    if (text.startsWith('> ')) {
-      return Text(
-        text.replaceFirst('> ', ''),
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          fontStyle: FontStyle.italic,
-          color: scheme.onSurfaceVariant,
-        ),
-      );
-    }
-    return Text.rich(TextSpan(children: _spans(text, context)));
   }
 
-  List<InlineSpan> _spans(String value, BuildContext context) {
-    final style = Theme.of(context).textTheme.bodyLarge;
-    final spans = <InlineSpan>[];
-    final pattern = RegExp(r'\*\*(.+?)\*\*|\*(.+?)\*');
-    var cursor = 0;
-    for (final match in pattern.allMatches(value)) {
-      if (match.start > cursor) {
-        spans.add(
-          TextSpan(text: value.substring(cursor, match.start), style: style),
-        );
-      }
-      final bold = match.group(1);
-      final italic = match.group(2);
-      if (bold != null) {
-        spans.add(
-          TextSpan(
-            text: bold,
-            style: style?.copyWith(fontWeight: FontWeight.w600),
+  List<InlineSpan> _runs(
+    BuildContext context,
+    List<RichRun> runs,
+    TextStyle? base,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    return [
+      for (final run in runs)
+        TextSpan(
+          text: run.text,
+          style: (base ?? const TextStyle()).copyWith(
+            fontWeight: run.bold ? FontWeight.w700 : base?.fontWeight,
+            fontStyle: run.italic ? FontStyle.italic : base?.fontStyle,
+            fontFamily: run.code ? 'Inter' : base?.fontFamily,
+            decoration: _decoration(run),
+            color: run.link != null ? scheme.primary : base?.color,
+            backgroundColor: run.code ? scheme.surfaceContainerLowest : null,
           ),
-        );
-      } else if (italic != null) {
-        spans.add(
-          TextSpan(
-            text: italic,
-            style: style?.copyWith(fontStyle: FontStyle.italic),
-          ),
-        );
-      }
-      cursor = match.end;
-    }
-    if (cursor < value.length) {
-      spans.add(TextSpan(text: value.substring(cursor), style: style));
-    }
-    return spans;
+          recognizer: run.link == null
+              ? null
+              : (TapGestureRecognizer()..onTap = () {}),
+        ),
+    ];
+  }
+
+  TextDecoration? _decoration(RichRun run) {
+    final parts = <TextDecoration>[];
+    if (run.underline || run.link != null) parts.add(TextDecoration.underline);
+    if (run.strike) parts.add(TextDecoration.lineThrough);
+    if (parts.isEmpty) return null;
+    return TextDecoration.combine(parts);
   }
 }
 

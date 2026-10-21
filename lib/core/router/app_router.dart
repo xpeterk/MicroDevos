@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/archive/archive_screen.dart';
 import '../../features/create/create_screen.dart';
 import '../../features/devo/devo_detail_screen.dart';
 import '../../features/favorites/favorites_screen.dart';
@@ -26,14 +25,6 @@ GoRouter buildRouter() {
               GoRoute(
                 path: '/',
                 builder: (context, state) => const TodayScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/archive',
-                builder: (context, state) => const ArchiveScreen(),
               ),
             ],
           ),

@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:micro_devos/domain/content/rich_document.dart';
 import 'package:micro_devos/domain/parsing/notion_devo_parser.dart';
 
 void main() {
-  String load(String name) => File('test/fixtures/notion/$name').readAsStringSync();
+  String load(String name) =>
+      File('test/fixtures/notion/$name').readAsStringSync();
 
   test('parses a current card into hook, scriptures, takeaway, and verse', () {
     final meta = const NotionCardMeta(
@@ -30,7 +32,10 @@ void main() {
     expect(devo.position, 4);
     expect(devo.title, "Only God's Opinion of You Matters");
     expect(devo.hook, "IDENTITY: Only God's opinion of you sticks.");
-    expect(devo.takeaway, 'Today, write one sentence about who God says you are.');
+    expect(
+      devo.takeaway,
+      'Today, write one sentence about who God says you are.',
+    );
     expect(devo.verseRef, 'Matthew 5:14');
     expect(
       devo.verseText,
@@ -40,14 +45,29 @@ void main() {
       'Matthew 5:14',
       'Romans 12:2',
     ]);
-    expect(devo.editionUrl, 'https://microdevos.substack.com/p/micro-devos-wednesday-october-14-2026');
+    expect(
+      devo.editionUrl,
+      'https://microdevos.substack.com/p/micro-devos-wednesday-october-14-2026',
+    );
     expect(devo.sourceUrl, 'https://example.com/source');
     expect(devo.editionDate, '2026-10-14');
     expect(devo.stars, 3);
     expect(devo.status, 'Archive');
     expect(devo.notionPageId, 'page-4');
-    expect(devo.bodyMd, contains('### Pressure'));
-    expect(devo.bodyMd, contains("God's opinion of you is still the one that sticks."));
+    final blocks = parseContent(devo.bodyMd);
+    expect(
+      blocks.any(
+        (block) =>
+            block.kind == ContentKind.heading && block.plainText == 'Pressure',
+      ),
+      isTrue,
+    );
+    expect(
+      blocks.map((block) => block.plainText).join('\n'),
+      contains("God's opinion of you is still the one that sticks."),
+    );
+    expect(devo.bodyMd, isNot(contains('###')));
+    expect(devo.bodyMd, isNot(contains('**')));
     expect(devo.bodyMd, isNot(contains('Today, write')));
     expect(devo.bodyMd, isNot(contains('VERSE')));
     expect(devo.bodyMd, isNot(contains('substack.com')));
@@ -77,7 +97,10 @@ void main() {
     expect(devo.scriptures.first.text, contains('intimidate the builders'));
     expect(devo.bodyMd, contains("Sanballat's favorite weapon was rumor."));
     expect(devo.bodyMd, isNot(contains('Sticky lesson')));
-    expect(devo.editionUrl, 'https://microdevos.substack.com/p/micro-devos-thursday-october-1-2026');
+    expect(
+      devo.editionUrl,
+      'https://microdevos.substack.com/p/micro-devos-thursday-october-1-2026',
+    );
     expect(devo.sourceUrl, 'https://example.com/nehemiah');
   });
 
@@ -85,7 +108,12 @@ void main() {
     final devos = NotionDevoParser.parse(load('two.md'));
     expect(devos.map((devo) => devo.position), [1, 2]);
     expect(devos.map((devo) => devo.title), ['First Light', 'Second Light']);
-    expect(devos.every((devo) => devo.hook == 'Two short stops on the same morning.'), isTrue);
+    expect(
+      devos.every(
+        (devo) => devo.hook == 'Two short stops on the same morning.',
+      ),
+      isTrue,
+    );
     expect(devos[0].verseRef, 'Psalm 46:1');
     expect(devos[1].verseRef, 'Psalm 119:105');
     expect(
@@ -98,11 +126,19 @@ void main() {
   test('skips ideas, prompts, and cards without an edition link', () {
     final body = load('newer.md');
     expect(
-      NotionDevoParser.decide(status: 'Ideas', title: 'A real title', markdown: body).reason,
+      NotionDevoParser.decide(
+        status: 'Ideas',
+        title: 'A real title',
+        markdown: body,
+      ).reason,
       contains('status'),
     );
     expect(
-      NotionDevoParser.decide(status: 'AI-Ideas', title: 'A real title', markdown: body).reason,
+      NotionDevoParser.decide(
+        status: 'AI-Ideas',
+        title: 'A real title',
+        markdown: body,
+      ).reason,
       contains('status'),
     );
     expect(
@@ -131,37 +167,50 @@ void main() {
     );
   });
 
-  test('parses the verse-box card: position, takeaway, emoji callout, edition', () {
-    final markdown = File('tools/notion-import/fixtures/verse-box.md').readAsStringSync();
-    const meta = NotionCardMeta(
-      title: 'A Refuge That Does Not Move',
-      status: 'Archive',
-      editionDate: '2026-10-16',
-      stars: 3,
-      sourceUrl: 'https://example.com/refuge',
-      notionPageId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
-    );
-    expect(
-      NotionDevoParser.decide(status: meta.status, title: meta.title, markdown: markdown)
-          .shouldImport,
-      isTrue,
-    );
-    final devo = NotionDevoParser.parse(markdown, meta: meta).single;
-    expect(devo.position, 3);
-    expect(devo.title, 'A Refuge That Does Not Move');
-    expect(devo.hook, 'A refuge is a person, and he is already here.');
-    expect(devo.takeaway, 'Today, say the verse once before the next hard conversation.');
-    expect(devo.verseRef, 'Psalm 46:1');
-    expect(devo.verseText, contains('refuge and strength'));
-    expect(devo.editionUrl, 'https://microdevos.substack.com/p/micro-devos-friday-october-16-2026');
-    expect(devo.editionDate, '2026-10-16');
-    expect(devo.stars, 3);
-    expect(devo.status, 'Archive');
-    expect(devo.notionPageId, meta.notionPageId);
-    expect(devo.sourceUrl, 'https://example.com/refuge');
-    expect(devo.bodyMd, isNot(contains('VERSE')));
-    expect(devo.bodyMd, isNot(contains('📖')));
-  });
+  test(
+    'parses the verse-box card: position, takeaway, emoji callout, edition',
+    () {
+      final markdown = File('tools/notion-import/fixtures/verse-box.md')
+          .readAsStringSync();
+      const meta = NotionCardMeta(
+        title: 'A Refuge That Does Not Move',
+        status: 'Archive',
+        editionDate: '2026-10-16',
+        stars: 3,
+        sourceUrl: 'https://example.com/refuge',
+        notionPageId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
+      );
+      expect(
+        NotionDevoParser.decide(
+          status: meta.status,
+          title: meta.title,
+          markdown: markdown,
+        ).shouldImport,
+        isTrue,
+      );
+      final devo = NotionDevoParser.parse(markdown, meta: meta).single;
+      expect(devo.position, 3);
+      expect(devo.title, 'A Refuge That Does Not Move');
+      expect(devo.hook, 'A refuge is a person, and he is already here.');
+      expect(
+        devo.takeaway,
+        'Today, say the verse once before the next hard conversation.',
+      );
+      expect(devo.verseRef, 'Psalm 46:1');
+      expect(devo.verseText, contains('refuge and strength'));
+      expect(
+        devo.editionUrl,
+        'https://microdevos.substack.com/p/micro-devos-friday-october-16-2026',
+      );
+      expect(devo.editionDate, '2026-10-16');
+      expect(devo.stars, 3);
+      expect(devo.status, 'Archive');
+      expect(devo.notionPageId, meta.notionPageId);
+      expect(devo.sourceUrl, 'https://example.com/refuge');
+      expect(devo.bodyMd, isNot(contains('VERSE')));
+      expect(devo.bodyMd, isNot(contains('📖')));
+    },
+  );
 
   test('counts star labels', () {
     expect(NotionDevoParser.starsFromLabel('★'), 1);

@@ -6,7 +6,6 @@ import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/models/devo_note.dart';
 import 'browse_state.dart';
-import 'feed_snack.dart';
 import 'passage.dart';
 
 class NotePane extends ConsumerStatefulWidget {
@@ -42,6 +41,7 @@ class _NotePaneState extends ConsumerState<NotePane> {
       return;
     }
     final now = DateTime.now().toUtc();
+    final messenger = ScaffoldMessenger.of(context);
     await ref
         .read(notesProvider.notifier)
         .save(
@@ -58,8 +58,20 @@ class _NotePaneState extends ConsumerState<NotePane> {
           ),
         );
     if (!mounted) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(milliseconds: 1800),
+          backgroundColor: Color(0xFF2C382F),
+          content: Text(
+            'Note saved · Saved › Notes',
+            style: TextStyle(fontFamily: AppTheme.sans, color: Colors.white),
+          ),
+        ),
+      );
     ref.read(noteDraftProvider.notifier).close();
-    showFeedSnack(context, 'Note saved · Saved › Notes');
   }
 
   Future<void> _trash() async {

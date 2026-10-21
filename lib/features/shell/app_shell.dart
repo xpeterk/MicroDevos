@@ -19,7 +19,7 @@ class AppShell extends ConsumerWidget {
     final showHint = ref.watch(showCreateHintProvider);
     final writing = run.writing || run.blockedReason != null;
     final showingResult = run.devo != null && !run.writing;
-    final showCreate = shell.currentIndex != 3 && !writing && !showingResult;
+    final showCreate = shell.currentIndex != 2 && !writing && !showingResult;
 
     if (writing) return const PersonalizeWritingScreen();
 
@@ -30,7 +30,7 @@ class AppShell extends ConsumerWidget {
         title: Text(
           showingResult
               ? 'Your devo'
-              : shell.currentIndex == 3
+              : shell.currentIndex == 2
               ? 'Saved'
               : 'Micro Devos',
           style: TextStyle(
@@ -91,7 +91,7 @@ class AppShell extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: showingResult ? 2 : shell.currentIndex,
+        selectedIndex: showingResult ? 1 : shell.currentIndex,
         onDestinationSelected: (index) {
           if (showingResult) {
             ref.read(personalizeRunProvider.notifier).dismiss();
@@ -102,12 +102,7 @@ class AppShell extends ConsumerWidget {
           NavigationDestination(
             icon: Icon(Icons.wb_sunny_outlined),
             selectedIcon: Icon(Icons.wb_sunny),
-            label: 'Today',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
-            label: 'Archive',
+            label: 'Feed',
           ),
           NavigationDestination(
             icon: Icon(Icons.auto_awesome_outlined),

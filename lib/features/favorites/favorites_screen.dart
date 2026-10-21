@@ -7,12 +7,9 @@ import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/models/devo_note.dart';
-import '../../domain/models/generated_devo.dart';
 import '../../shared/widgets/reading_widgets.dart';
 import '../browse/banner.dart';
 import '../browse/browse_state.dart';
-import '../personalize/personalize_run.dart';
-import '../personalize/personalize_state.dart';
 
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
@@ -29,9 +26,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   Widget build(BuildContext context) {
     final favorites = ref.watch(favoritesProvider);
     final notes = ref.watch(notesProvider);
-    final mine = ref.watch(mineProvider);
     final segment = ref.watch(savedSegmentProvider);
-    if (favorites.isLoading || notes.isLoading || mine.isLoading) {
+    if (favorites.isLoading || notes.isLoading) {
       return const LoadingView();
     }
     if (favorites.hasError) {
@@ -44,7 +40,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     }
     final ids = (favorites.value ?? const <String>{}).toList()..sort();
     final noteList = notes.value ?? const <DevoNote>[];
-    final mineList = mine.value ?? const <GeneratedDevo>[];
     final likedDevos =
         [for (final id in ids) ?ref.watch(devoByIdProvider(id)).asData?.value]
           ..sort((a, b) {
@@ -163,25 +158,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                ] else ...[
-                  Text(
-                    mineList.isEmpty
-                        ? 'No personalized devos yet'
-                        : '${mineList.length} personalized ${mineList.length == 1 ? 'devo' : 'devos'}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontFamily: AppTheme.sans,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Devos you created and saved. Private to you.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontFamily: AppTheme.sans,
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
                 ],
               ],
             ),
@@ -225,40 +201,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 return _NoteGroupCard(notes: group);
               }, childCount: _groups(noteList).length),
             ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 0.78,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) =>
-                    MineTile(devo: mineList[index], index: index),
-                childCount: mineList.length,
-              ),
-            ),
-          ),
-        if (segment == SavedSegment.liked || segment == SavedSegment.mine)
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 28),
-              child: Center(
-                child: Text(
-                  'BANNERS ARE PLACEHOLDERS',
-                  style: TextStyle(
-                    fontFamily: AppTheme.sans,
-                    fontSize: 11,
-                    letterSpacing: 1.1,
-                    color: AppColors.inkMuted,
-                  ),
-                ),
-              ),
-            ),
           ),
       ],
     );
@@ -284,7 +226,7 @@ class _SegmentSwitch extends ConsumerWidget {
         children: [
           _SegmentButton(
             key: const Key('saved-liked'),
-            label: 'Liked',
+            label: 'Favorites',
             icon: Icons.favorite,
             selected: segment == SavedSegment.liked,
             onTap: () => ref
@@ -299,15 +241,6 @@ class _SegmentSwitch extends ConsumerWidget {
             onTap: () => ref
                 .read(savedSegmentProvider.notifier)
                 .show(SavedSegment.notes),
-          ),
-          _SegmentButton(
-            key: const Key('saved-mine'),
-            label: 'Mine',
-            icon: Icons.auto_awesome,
-            selected: segment == SavedSegment.mine,
-            onTap: () => ref
-                .read(savedSegmentProvider.notifier)
-                .show(SavedSegment.mine),
           ),
         ],
       ),
@@ -528,10 +461,7 @@ class _NoteGroupCard extends ConsumerWidget {
   void _open(WidgetRef ref, BuildContext context, DevoNote note) {
     ref.read(noteDraftProvider.notifier).openExisting(note);
     final devoId = note.devoId;
-    if (devoId != null && note.section != null) {
-      ref.read(postDepthProvider.notifier).setDepth(devoId, PostDepth.full);
-    }
-    context.go('/');
+    if (devoId != null) context.push('/devo/$devoId');
   }
 }
 

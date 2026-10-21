@@ -281,7 +281,9 @@ class SavedSegmentController extends Notifier<SavedSegment> {
   @override
   SavedSegment build() => SavedSegment.liked;
 
-  void show(SavedSegment segment) => state = segment;
+  void show(SavedSegment segment) {
+    state = segment == SavedSegment.mine ? SavedSegment.liked : segment;
+  }
 }
 
 final savedSegmentProvider =

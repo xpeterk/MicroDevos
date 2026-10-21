@@ -15,29 +15,28 @@ lib/
     supabase/   repository implementations used when keys are present
     bible/      KJV bundle, Crossway ESV client, API.Bible client
     enrichment/ disabled embeddings, local keyword tags, and test fakes
-  features/     today feed, devo, archive, favorites, settings, for_you, create, personalize
+  features/     feed, devo, favorites, settings, for_you, create, personalize
   shared/       reading layout widgets
-assets/         sample devos, tags, public-domain KJV verses, Source Serif / Source Sans
+assets/         sample devos, tags, public-domain KJV verses, OFL fonts
 supabase/       SQL migrations, ingest-devos, and generate-devo
 tools/notion-import/   Notion "Micro Devos Cards" importer
 ```
 
-The UI is Flutter with Riverpod and go_router, organized by feature. Reading text uses Source Serif 4; interface text uses Source Sans 3. Light and dark themes share a warm paper / olive palette. The featured verse sits in a shaded card.
+The UI is Flutter with Riverpod and go_router, organized by feature. Reading text uses Source Serif 4; interface text uses Source Sans 3. Banner styles bundle Playfair Display, Space Grotesk, Bebas Neue, Caveat, Inter, DM Serif Display, Fraunces, and Abril Fatface. Those files are SIL Open Font License and ship in the app; nothing fetches a font at runtime. Light and dark themes share a warm paper / olive palette. The featured verse sits in a shaded card.
 
 Screens:
 
 | Route | What it does |
 | --- | --- |
-| `/` | Today feed: a story row for the edition, a pinned filter bar, and one post per devotion, in position order 1 through 8. Today opens the latest edition on or before the device's local date, including rows whose status is archive, read, unread, or published. A day with no edition of its own, including a weekend, shows that latest weekday edition. Returning to the app loads the catalog again. The phone rotates; wide and landscape screens keep the feed in a centered column. |
-| `/story/:id` | Full-screen story for that devotion. Tap either side, or swipe up for the full page. |
-| `/devo/:id` | Full devotion, share card, favorite toggle. |
-| `/archive` | Search plus date chips. |
-| `/favorites` | Saved tab. Liked, Notes, and Mine. Mine holds devotions this reader created. |
+| `/` | One feed of every devotion. Days are newest first. Inside a day, position runs 1 through 8. The newest day is labeled Today when it is the edition the calendar resolved, including a weekend that falls back to the latest weekday. Statuses archive, read, unread, and published all stay in the feed. A pinned filter bar narrows that list. Returning to the app loads the catalog again. The phone rotates; wide and landscape screens keep the feed in a centered column. |
+| `/story/:id` | Full-screen story for that devotion. The home feed does not show story circles. |
+| `/devo/:id` | Full devotion. Tapping a banner opens it with a hero transition. The floating Back to feed pill, and the system back button, pop to the feed and leave its scroll where it was. |
+| `/favorites` | Saved tab. Favorites and Notes. |
 | `/settings` | Theme, Bible versions, tags, daily reminder time, account. |
 | `/for-you` | Stub for recommendations. Create a devotion opens Personalize. |
 | `/create` | Points at the top-bar Create button. Personalize is that sheet, not this route. |
 
-**Create** in the top bar opens Personalize and drafts a new devotion. The filter bar only narrows devotions already in the feed. The sheet steps are What (Topic or Verse), Style, then For whom (optional age and life-situation chips), then Generate. Next, Back, and a horizontal swipe move between steps. A swipe cannot leave What until a topic or verse is chosen, or Style until a style is chosen. The result is a feed card with like, share, note, Save to Mine, and Regenerate. Verse mode stores the reader's ESV or NIV choice. The on-sheet preview is bundled KJV and is labeled as sample text.
+**Create** in the top bar opens Personalize and drafts a new devotion. The filter bar only narrows devotions already in the feed. The sheet steps are What (Topic or Verse), Style, then For whom (optional age and life-situation chips), then Generate. Next, Back, and a horizontal swipe move between steps. A swipe cannot leave What until a topic or verse is chosen, or Style until a style is chosen. The result is a feed card with like, share, note, Save, and Regenerate. Verse mode stores the reader's ESV or NIV choice. The on-sheet preview is bundled KJV and is labeled as sample text.
 
 There is no author byline on any screen or in share text.
 
@@ -72,11 +71,13 @@ A new auth user gets a `profiles` row and a `preferences` row from a trigger.
 
 `supabase/migrations/20261018000002_feed_notes_and_images.sql` adds two things on top of the foundation schema:
 
-- `devos.image_url` is nullable text. Sample devotions leave it null. The feed card paints that image, including a Substack CDN URL, at the full column width and the image's own aspect ratio, with no side crop. `image_alt` is the accessibility label. The title is not drawn on top of a banner, because the picture already contains it; a card with a null URL keeps the gradient, the title, and the words IMAGE PLACEHOLDER. Wide screens center that column so the banner stays uncropped and not huge.
+- `devos.image_url` is nullable text. Sample devotions leave it null. The feed card is one of eight composed banners, chosen by devotion number: photo with a dark overlay, duotone, type poster, outlined scripture, split image, hand-lettered, minimal editorial, and collage with a stamp. Image styles paint `image_url` with `BoxFit.cover` and fall back to a gradient when the URL is missing or the load fails. `image_alt` is the accessibility label. The banner title and a short "3 SEC" line (the takeaway, or the hook when there is no takeaway) are drawn on the banner. The newsletter picture itself, at its own aspect ratio and uncropped, appears only as a header inside the full devotion, and only when that frame is not already the photo or the duotone. Wide screens center the column.
 - `supabase/migrations/20261020000004_image_alt.sql` adds nullable `devos.image_alt`. The banner step is the only writer of `image_url` and `image_alt`. It does not change devotion text.
 - `notes` stores a private note on exactly one of `devo_id` or `generated_devo_id`. Columns are `body`, optional `anchor_text`, `anchor_start`, `anchor_end`, and a `section` key (`hook`, `body`, `takeaway`, `verse`, `scripture`) so a highlight can be found again after a re-render. A null section attaches the note to the whole devotion. Row-level security lets a signed-in reader select, insert, update, and delete only their own rows.
 
-With no Supabase session, likes and notes stay in `SharedPreferences`. Signing in syncs favorites through the existing table and pushes notes whose target id is a uuid. Personalized devotions saved on this phone stay in `SharedPreferences` under Mine until a signed-in reader saves them to `public.mine`.
+With no Supabase session, likes and notes stay in `SharedPreferences`. Signing in syncs favorites through the existing table and pushes notes whose target id is a uuid. A personalized devotion saved from the result card stays in `SharedPreferences` on this phone. `public.mine` is still the signed-in table for those rows; the Saved tab itself shows Favorites and Notes.
+
+`devos.body_md` stores either legacy markdown or a JSON document (`{"v":1,"blocks":[...]}`). The importer writes the JSON form. The app paints headings, paragraphs, bullets, numbers, quotes, callouts, dividers, and inline bold, italic, underline, strikethrough, code, and links. Raw markdown markers are not shown.
 
 ### Personalize
 

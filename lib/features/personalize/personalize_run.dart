@@ -97,7 +97,7 @@ class PersonalizeWritingScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Usually under 20 seconds. You can leave this screen; it will show up in Saved › Mine.',
+                'Usually under 20 seconds. You can leave this screen. A saved devotion stays on this phone.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: AppTheme.sans,
@@ -309,7 +309,7 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
                 tooltip: 'Note',
                 onPressed: () => showFeedSnack(
                   context,
-                  'Notes on a new devo stay with you in Mine.',
+                  'Notes on a new devo stay on this phone.',
                 ),
                 icon: const Icon(Icons.sticky_note_2_outlined),
               ),
@@ -435,10 +435,10 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
                       onPressed: () async {
                         await ref.read(mineProvider.notifier).save(devo);
                         if (!context.mounted) return;
-                        showFeedSnack(context, 'Saved to Mine');
+                        showFeedSnack(context, 'Saved on this phone');
                       },
                       icon: const Icon(Icons.bookmark_border),
-                      label: const Text('Save to Mine'),
+                      label: const Text('Save'),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: const StadiumBorder(),
@@ -739,6 +739,6 @@ class MineTile extends StatelessWidget {
   }
 }
 
-/// Palette order used by the Saved › Mine golden so the four tiles match
+/// Palette order for personalized tiles.
 /// the approved art: plum, sand, blue, olive.
 const minePaletteOrder = [2, 4, 0, 1];

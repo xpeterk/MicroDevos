@@ -22,10 +22,9 @@ class CreateScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'The Create button opens Personalize and drafts a new devotion from a topic or a verse. Filter on the feed only narrows devotions that already exist. A finished devotion can be kept in Saved, under Mine.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+              'The Create button opens Personalize and drafts a new devotion from a topic or a verse. Filter on the feed only narrows devotions that already exist. A finished devotion stays on this phone when you save it.',
+              style: Theme.of(context).textTheme.bodyLarge
+                  ?.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
         ),

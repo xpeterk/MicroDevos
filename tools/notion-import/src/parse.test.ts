@@ -32,6 +32,28 @@ test("parses the current card shape", () => {
   assert.equal(devo.edition_url, "https://microdevos.substack.com/p/micro-devos-wednesday-october-14-2026");
   assert.equal(devo.scriptures.length, 2);
   assert.equal(devo.body_md.includes("Today, write"), false);
+  assert.equal(devo.body_md.trim().startsWith("{"), true);
+  const doc = JSON.parse(devo.body_md) as {
+    v: number;
+    blocks: { type: string; runs?: { text: string; bold?: boolean }[] }[];
+  };
+  assert.equal(doc.v, 1);
+  assert.equal(
+    doc.blocks.some(
+      (block) =>
+        block.type === "heading" &&
+        (block.runs ?? []).map((run) => run.text).join("") === "Pressure",
+    ),
+    true,
+  );
+  assert.equal(
+    doc.blocks.some((block) =>
+      (block.runs ?? []).some((run) => run.bold && run.text.includes("Let God's view")),
+    ),
+    true,
+  );
+  assert.equal(devo.body_md.includes("###"), false);
+  assert.equal(devo.body_md.includes("**"), false);
 });
 
 test("parses the older sticky-lesson card", () => {

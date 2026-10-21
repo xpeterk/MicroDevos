@@ -47,13 +47,14 @@ void main() {
     await _top(tester);
     await _capture(tester, 'build-IG1');
 
-    await _tap(tester, const Key('more-fri-1'));
-    await _show(tester, find.text('5-SECOND DEVO'));
+    await _show(tester, find.text('DUOTONE IMAGE'));
     await _capture(tester, 'build-IG2');
 
-    await _tap(tester, const Key('read-full-fri-1'));
-    await _show(tester, find.text('Show less'));
+    await _tap(tester, const Key('banner-fri-1'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key('devo-detail')), findsOneWidget);
     await _capture(tester, 'build-IG3');
+    await _tap(tester, const Key('back-to-feed'));
 
     await _top(tester);
     await _doubleTap(tester, const Key('banner-fri-1'));
@@ -63,10 +64,9 @@ void main() {
     _hideSnack(tester);
     await tester.pump(const Duration(milliseconds: 400));
 
-    await _top(tester);
-    await _tap(tester, const Key('story-fri-2'));
+    await _show(tester, find.text('HAND-LETTERED'));
     await _capture(tester, 'build-IG5');
-    await _tap(tester, const Key('story-close'));
+    await _top(tester);
 
     for (final id in ['fri-2', 'fri-3', 'fri-4', 'fri-5', 'fri-6']) {
       await container.read(favoritesProvider.notifier).toggle(id);
@@ -76,7 +76,7 @@ void main() {
     expect(find.text('A Refuge That Does Not Move'), findsWidgets);
     await _capture(tester, 'build-IG6');
 
-    await tester.tap(find.text('Today'));
+    await tester.tap(find.text('Feed'));
     await _settle(tester);
     await _top(tester);
     await _tap(tester, const Key('share-button-fri-1'));
@@ -118,9 +118,8 @@ void main() {
     await _show(tester, find.textContaining('The refuge does not relocate'));
     await _capture(tester, 'build-N2');
     _hideSnack(tester);
-    await tester.pump(const Duration(milliseconds: 400));
-
-    await _tap(tester, const Key('show-less-fri-1'));
+    await tester.pump(const Duration(seconds: 2));
+    await _tap(tester, const Key('back-to-feed'));
     await Scrollable.ensureVisible(
       tester.element(find.byKey(const Key('note-button-fri-1'))),
       alignment: 0.2,

@@ -1,3 +1,4 @@
+import '../content/rich_document.dart';
 import '../models/scripture_quote.dart';
 
 /// Metadata from a Micro Devos Cards row. The page body still has to be parsed.
@@ -159,7 +160,9 @@ class NotionDevoParser {
     for (var index = 0; index < headings.length; index++) {
       final heading = headings[index];
       final start = heading.end;
-      final end = index + 1 < headings.length ? headings[index + 1].start : text.length;
+      final end = index + 1 < headings.length
+          ? headings[index + 1].start
+          : text.length;
       final section = text.substring(start, end).trim();
       final parsed = _parseSection(section);
       final scriptures = [...glanceScriptures, ...parsed.scriptures];
@@ -226,9 +229,8 @@ class NotionDevoParser {
   }
 
   static _Section _parseSection(String section) {
-    final callout = RegExp(
-      r':::callout\s*\n([\s\S]*?)\n:::',
-    ).firstMatch(section);
+    final callout = RegExp(r':::callout\s*\n([\s\S]*?)\n:::')
+        .firstMatch(section);
     final verse = callout == null
         ? const _Verse('', '')
         : _verseFromCallout(callout.group(1)!);
@@ -294,7 +296,9 @@ class NotionDevoParser {
     if (takeaway.isEmpty && lastBold != null) {
       takeaway = lastBold;
       final boldLine = '**$lastBold**';
-      final index = kept.lastIndexWhere((line) => line == boldLine || _plain(line) == lastBold);
+      final index = kept.lastIndexWhere(
+        (line) => line == boldLine || _plain(line) == lastBold,
+      );
       if (index >= 0) kept.removeAt(index);
     } else if (lastBold != null && sticky == null && todayStep != null) {
       // The closing bold line stays in the reflection when a "Today" step exists.
@@ -307,11 +311,13 @@ class NotionDevoParser {
     if (verse.reference.isNotEmpty &&
         verse.text.isNotEmpty &&
         scriptures.every((quote) => quote.reference != verse.reference)) {
-      scriptures.add(ScriptureQuote(reference: verse.reference, text: verse.text));
+      scriptures.add(
+        ScriptureQuote(reference: verse.reference, text: verse.text),
+      );
     }
 
     return _Section(
-      body: _collapse(kept.join('\n')),
+      body: encodeContent(markdownToBlocks(_collapse(kept.join('\n')))),
       takeaway: takeaway,
       verseText: verse.text,
       verseRef: verse.reference,
@@ -365,8 +371,12 @@ class NotionDevoParser {
 
   static bool _isSourceOrEdition(String line) {
     final lower = line.toLowerCase();
-    if (lower.startsWith('**source:') || lower.startsWith('source:')) return true;
-    if (lower.startsWith('edition:') || lower.startsWith('**edition:')) return true;
+    if (lower.startsWith('**source:') || lower.startsWith('source:')) {
+      return true;
+    }
+    if (lower.startsWith('edition:') || lower.startsWith('**edition:')) {
+      return true;
+    }
     return false;
   }
 
@@ -392,13 +402,19 @@ class NotionDevoParser {
   }
 
   static String _cleanRef(String reference) {
-    return reference.replaceAll(_versionSuffix, '').replaceAll(RegExp(r'\s+'), ' ').trim();
+    return reference
+        .replaceAll(_versionSuffix, '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
   }
 
   static String _plain(String line) {
     return line
         .replaceAllMapped(RegExp(r'\*\*(.+?)\*\*'), (match) => match.group(1)!)
-        .replaceAllMapped(RegExp(r'(?<!\*)\*(.+?)\*(?!\*)'), (match) => match.group(1)!)
+        .replaceAllMapped(
+          RegExp(r'(?<!\*)\*(.+?)\*(?!\*)'),
+          (match) => match.group(1)!,
+        )
         .trim();
   }
 
@@ -415,13 +431,13 @@ class NotionDevoParser {
   }
 
   static String _stripLeadingSymbols(String input) {
-    return input.replaceFirst(RegExp(r"^[^\p{L}\p{N}]+", unicode: true), '').trim();
+    return input
+        .replaceFirst(RegExp(r"^[^\p{L}\p{N}]+", unicode: true), '')
+        .trim();
   }
 
   static String _collapse(String value) {
-    return value
-        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
-        .trim();
+    return value.replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
   }
 
   static List<ScriptureQuote> _uniqueScriptures(List<ScriptureQuote> quotes) {

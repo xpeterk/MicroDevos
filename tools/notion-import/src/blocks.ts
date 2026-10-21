@@ -5,8 +5,10 @@ export function richTextToMarkdown(items: NotionRichText[] = []): string {
     .map((item) => {
       let text = item.plain_text ?? "";
       if (item.annotations?.code) text = `\`${text}\``;
-      if (item.annotations?.bold) text = `**${text}**`;
+      if (item.annotations?.strikethrough) text = `~~${text}~~`;
+      if (item.annotations?.underline) text = `++${text}++`;
       if (item.annotations?.italic) text = `*${text}*`;
+      if (item.annotations?.bold) text = `**${text}**`;
       if (item.href) text = `[${text}](${item.href})`;
       return text;
     })

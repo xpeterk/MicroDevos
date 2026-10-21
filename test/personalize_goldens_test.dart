@@ -6,8 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:micro_devos/core/providers.dart';
 import 'package:micro_devos/core/startup.dart';
 import 'package:micro_devos/domain/models/bible_version.dart';
-import 'package:micro_devos/domain/models/generated_devo.dart';
-import 'package:micro_devos/features/browse/browse_state.dart';
 import 'package:micro_devos/features/personalize/personalize_state.dart';
 import 'package:micro_devos/features/today/today_screen.dart';
 
@@ -145,27 +143,15 @@ void main() {
     _hideSnack(tester);
     await tester.pump(const Duration(milliseconds: 300));
 
-    await container.read(mineProvider.notifier).replaceAll([
-      _mine('a', 'Steady Ground on a First Morning'),
-      _mine('b', 'When the Answer Is Wait'),
-      _mine('c', 'Rest for a Tired Parent'),
-      _mine('d', 'Psalm 23 for a Long Week'),
-    ]);
-    await tester.pump();
-    container.read(savedSegmentProvider.notifier).show(SavedSegment.mine);
+    expect(find.text('Saved on this phone'), findsOneWidget);
+    await _capture(tester, 'build-PZ6b');
+    _hideSnack(tester);
+    await tester.pump(const Duration(milliseconds: 300));
+
     await tester.tap(find.byKey(const Key('personalize-close')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.text('Saved'));
-    await _settle(tester);
-    await tester.tap(find.byKey(const Key('saved-mine')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('4 personalized devos'), findsOneWidget);
-    expect(find.text('When the Answer Is Wait'), findsOneWidget);
-    await _capture(tester, 'build-PZ6b');
-
-    await tester.tap(find.text('Today'));
+    await tester.tap(find.text('Feed'));
     await _settle(tester);
     await tester.tap(find.byKey(const Key('create-button')));
     await tester.pump();
@@ -188,24 +174,6 @@ void main() {
 
     expect(tester.takeException(), isNull);
   }, timeout: const Timeout(Duration(seconds: 90)));
-}
-
-GeneratedDevo _mine(String id, String title) {
-  return GeneratedDevo(
-    id: id,
-    title: title,
-    hook: '',
-    sections: const [],
-    takeaway: '',
-    verseText: '',
-    verseRef: '',
-    scriptures: const [],
-    styleKey: 'purpose',
-    styleLabel: 'Purpose & practical living',
-    styleKind: 'style',
-    promptLabel: '',
-    reuseCount: 0,
-  );
 }
 
 Future<void> _settle(WidgetTester tester) async {

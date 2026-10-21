@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:micro_devos/core/providers.dart';
 import 'package:micro_devos/core/startup.dart';
+import 'package:micro_devos/features/today/today_screen.dart';
 
 import 'support/load_fonts.dart';
 import 'support/sample_app.dart';
@@ -34,19 +37,46 @@ void main() {
     await _settle(tester);
     expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
     expect(find.byKey(const Key('feed-filter-bar')), findsOneWidget);
-    expect(find.byKey(const Key('story-fri-1')), findsOneWidget);
-
-    await _tap(tester, const Key('more-fri-1'));
-    expect(find.text('5-SECOND DEVO'), findsOneWidget);
-    expect(find.byKey(const Key('read-full-fri-1')), findsOneWidget);
-
-    await _tap(tester, const Key('read-full-fri-1'));
-    expect(find.textContaining('NEXT STEP'), findsOneWidget);
-    expect(find.text('Show less'), findsOneWidget);
-
-    await _tap(tester, const Key('show-less-fri-1'));
-    expect(find.textContaining('NEXT STEP'), findsNothing);
-    expect(find.byKey(const Key('more-fri-1')), findsOneWidget);
+    expect(find.byKey(const Key('story-fri-1')), findsNothing);
+    expect(find.text('Archive'), findsNothing);
+    expect(find.textContaining('FRI, OCT 16'), findsOneWidget);
+    expect(find.text('3 SEC'), findsWidgets);
+    expect(
+      find.textContaining('Before you react, sit for one quiet minute'),
+      findsWidgets,
+    );
+    expect(
+      tester.getTopLeft(find.text('DEVO 1 OF 8').first).dy,
+      lessThan(tester.getTopLeft(find.text('DEVO 2 OF 8').first).dy),
+    );
+    for (final label in const [
+      'PHOTO + SCRIM',
+      'DUOTONE IMAGE',
+      'TYPE POSTER',
+      'OUTLINED SCRIPTURE',
+      'SPLIT IMAGE',
+      'HAND-LETTERED',
+      'MINIMAL EDITORIAL',
+      'COLLAGE + STAMP',
+    ]) {
+      expect(find.text(label), findsWidgets);
+    }
+    final devos = ProviderScope.containerOf(
+      tester.element(find.byType(TodayScreen)),
+    ).read(todayProvider).requireValue.devos;
+    expect(devos.first.id, 'fri-1');
+    expect(devos.take(8).map((devo) => devo.position), [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+    ]);
+    expect(devos[8].id, 'thu-1');
+    expect(devos[8].editionDate.isBefore(devos.first.editionDate), isTrue);
 
     await _tap(tester, const Key('heart-fri-1'));
     expect(find.text('Liked · added to Saved'), findsOneWidget);
@@ -86,18 +116,22 @@ void main() {
     await _tap(tester, const Key('liked-filter'));
     expect(find.text('The Right Hand You Cannot See'), findsOneWidget);
 
-    expect(find.textContaining('NEXT STEP'), findsNothing);
-    await _tap(tester, const Key('more-fri-1'));
-    await _tap(tester, const Key('read-full-fri-1'));
-    expect(find.textContaining('The refuge does not relocate'), findsOneWidget);
-
     await _tap(tester, const Key('note-button-fri-1'));
+    expect(find.byKey(const Key('devo-detail')), findsOneWidget);
+    expect(find.textContaining('The refuge does not relocate'), findsOneWidget);
     expect(find.byKey(const Key('note-editor')), findsOneWidget);
     await tester.enterText(
       find.byKey(const Key('note-body')),
       'Sit quietly before I answer.',
     );
     await tester.pump();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('note-body')))
+          .controller
+          ?.text,
+      'Sit quietly before I answer.',
+    );
 
     await selectSentence(tester, anchorSentence);
     expect(find.byKey(const Key('anchor-note')), findsOneWidget);
@@ -113,6 +147,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byKey(const Key('note-editor')), findsNothing);
     expect(find.text('Note saved · Saved › Notes'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    await _tap(tester, const Key('back-to-feed'));
+    expect(find.byKey(const Key('devo-detail')), findsNothing);
     final postit = find.byWidgetPredicate((widget) {
       final key = widget.key;
       return key is ValueKey<String> && key.value.startsWith('postit-');
@@ -130,6 +167,7 @@ void main() {
     await tester.tap(find.byKey(const Key('note-done')));
     await tester.pump();
     await tester.pump(const Duration(seconds: 2));
+    await _tap(tester, const Key('back-to-feed'));
 
     await tester.tap(find.text('Saved'));
     await tester.pump();
@@ -179,8 +217,9 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 Future<void> _tap(WidgetTester tester, Key key) async {
-  final scaffold = tester.element(find.byType(Scaffold).first);
-  ScaffoldMessenger.of(scaffold).hideCurrentSnackBar();
+  for (final element in tester.elementList(find.byType(Scaffold))) {
+    ScaffoldMessenger.of(element).hideCurrentSnackBar();
+  }
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
   final finder = find.byKey(key);

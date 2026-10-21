@@ -12,6 +12,7 @@ import 'package:micro_devos/data/sample/sample_catalog.dart';
 import 'package:micro_devos/domain/models/devo.dart';
 import 'package:micro_devos/domain/models/devo_note.dart';
 import 'package:micro_devos/features/browse/feed_view.dart';
+import 'package:micro_devos/features/devo/devo_detail_screen.dart';
 import 'package:micro_devos/shared/widgets/reading_widgets.dart';
 
 import 'support/load_fonts.dart';
@@ -27,6 +28,41 @@ void main() {
 
   tearDown(() {
     debugNetworkImageHttpClientProvider = null;
+  });
+
+  test('the newsletter image is reserved for the full devotion', () {
+    expect(
+      showsNewsletterImage(
+        _devo(position: 1, imageUrl: 'https://cdn.example/a.png'),
+      ),
+      isFalse,
+    );
+    expect(
+      showsNewsletterImage(
+        _devo(position: 2, imageUrl: 'https://cdn.example/a.png'),
+      ),
+      isFalse,
+    );
+    expect(
+      showsNewsletterImage(
+        _devo(position: 3, imageUrl: 'https://cdn.example/a.png'),
+      ),
+      isTrue,
+    );
+    expect(
+      showsNewsletterImage(
+        _devo(position: 5, imageUrl: 'https://cdn.example/a.png'),
+      ),
+      isTrue,
+    );
+    expect(
+      showsNewsletterImage(
+        _devo(position: 8, imageUrl: 'https://cdn.example/a.png'),
+      ),
+      isTrue,
+    );
+    expect(showsNewsletterImage(_devo(position: 3, imageUrl: null)), isFalse);
+    expect(showsNewsletterImage(_devo(position: 3, imageUrl: '   ')), isFalse);
   });
 
   test('android manifest does not lock portrait', () {
@@ -68,8 +104,8 @@ void main() {
   testWidgets('today feed keeps positions 1 then 2', (tester) async {
     await tester.pumpWidget(_feedApp([_devo(position: 1), _devo(position: 2)]));
     await tester.pump();
-    final first = tester.getTopLeft(find.text('1 of 2'));
-    final second = tester.getTopLeft(find.text('2 of 2'));
+    final first = tester.getTopLeft(find.text('DEVO 1 OF 2'));
+    final second = tester.getTopLeft(find.text('DEVO 2 OF 2'));
     expect(first.dy, lessThan(second.dy));
   });
 
@@ -87,17 +123,19 @@ void main() {
       await _settlePhoto(tester, url);
 
       expect(find.text('IMAGE PLACEHOLDER'), findsNothing);
-      expect(find.text('A Refuge That Does Not Move'), findsNothing);
+      expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
+      expect(find.text('3 SEC'), findsOneWidget);
+      expect(find.textContaining('Sit for one quiet minute.'), findsOneWidget);
       expect(find.bySemanticsLabel('A still morning'), findsOneWidget);
 
       final image = tester.widget<Image>(
         find.byKey(const ValueKey('banner-photo-$url')),
       );
-      expect(image.fit, BoxFit.fitWidth);
+      expect(image.fit, BoxFit.cover);
       final banner = tester.getRect(find.byKey(const Key('banner-wide-1')));
-      expect(banner.left, closeTo(0, 1));
-      expect(banner.width, closeTo(390, 1));
-      expect(banner.height, closeTo(390 / 3, 1.5));
+      expect(banner.left, closeTo(16, 1));
+      expect(banner.width, closeTo(358, 1));
+      expect(banner.height, closeTo(236, 1));
 
       await _capture(
         tester,
@@ -118,10 +156,12 @@ void main() {
       child: _post(imageUrl: null),
     );
     await tester.pump();
-    expect(find.text('IMAGE PLACEHOLDER'), findsOneWidget);
+    expect(find.text('IMAGE PLACEHOLDER'), findsNothing);
     expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
+    expect(find.text('3 SEC'), findsOneWidget);
+    expect(find.byKey(const ValueKey('banner-photo-')), findsNothing);
     final banner = tester.getSize(find.byKey(const Key('banner-wide-1')));
-    expect(banner.width, closeTo(banner.height, 1));
+    expect(banner.height, closeTo(236, 1));
   });
 
   testWidgets(
@@ -146,15 +186,15 @@ void main() {
         final banner = tester.getRect(find.byKey(const Key('banner-wide-1')));
         expect(post.width, closeTo(feedContentMaxWidth, 1));
         expect(post.left, closeTo((view.width - feedContentMaxWidth) / 2, 1));
-        expect(banner.left, closeTo(post.left, 1));
-        expect(banner.width, closeTo(post.width, 1));
-        expect(banner.height, closeTo(banner.width / 3, 1.5));
-        expect(find.text('A Refuge That Does Not Move'), findsNothing);
+        expect(banner.left, closeTo(post.left + 16, 1));
+        expect(banner.width, closeTo(post.width - 32, 1));
+        expect(banner.height, closeTo(236, 1));
+        expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
 
         final image = tester.widget<Image>(
           find.byKey(const ValueKey('banner-photo-$url')),
         );
-        expect(image.fit, BoxFit.fitWidth);
+        expect(image.fit, BoxFit.cover);
         await _capture(tester, find.byType(FeedView), 'banner-landscape');
       } finally {
         debugNetworkImageHttpClientProvider = null;
@@ -220,17 +260,11 @@ Future<void> _settlePhoto(WidgetTester tester, String url) async {
   await tester.pump();
   final key = ValueKey('banner-photo-$url');
   for (var i = 0; i < 8; i++) {
-    if (find.byKey(key).evaluate().isNotEmpty) {
-      final banner = tester.getSize(find.byKey(const Key('banner-wide-1')));
-      if ((banner.width / banner.height - 3).abs() < 0.08) return;
-    }
+    if (find.byKey(key).evaluate().isNotEmpty) return;
     await tester.pump();
   }
   final error = tester.takeException();
-  fail(
-    'banner did not settle at the decoded 3:1 ratio'
-    '${error == null ? '' : ' ($error)'}',
-  );
+  fail('banner photo did not paint${error == null ? '' : ' ($error)'}');
 }
 
 Future<void> _capture(WidgetTester tester, Finder finder, String name) async {

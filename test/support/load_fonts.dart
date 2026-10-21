@@ -20,6 +20,36 @@ Future<void> loadAppFonts() async {
     'assets/fonts/SourceSans3-Medium.ttf',
     'assets/fonts/SourceSans3-Semibold.ttf',
   ]);
+  await _loadFamily('Playfair Display', const [
+    'assets/fonts/PlayfairDisplay-Regular.ttf',
+    'assets/fonts/PlayfairDisplay-Italic.ttf',
+    'assets/fonts/PlayfairDisplay-Bold.ttf',
+    'assets/fonts/PlayfairDisplay-BoldItalic.ttf',
+  ]);
+  await _loadFamily('Space Grotesk', const [
+    'assets/fonts/SpaceGrotesk-Medium.ttf',
+    'assets/fonts/SpaceGrotesk-Bold.ttf',
+  ]);
+  await _loadFamily('Bebas Neue', const ['assets/fonts/BebasNeue-Regular.ttf']);
+  await _loadFamily('Caveat', const [
+    'assets/fonts/Caveat-Regular.ttf',
+    'assets/fonts/Caveat-Bold.ttf',
+  ]);
+  await _loadFamily('Inter', const [
+    'assets/fonts/Inter-Regular.ttf',
+    'assets/fonts/Inter-Semibold.ttf',
+  ]);
+  await _loadFamily('DM Serif Display', const [
+    'assets/fonts/DMSerifDisplay-Regular.ttf',
+    'assets/fonts/DMSerifDisplay-Italic.ttf',
+  ]);
+  await _loadFamily('Fraunces', const [
+    'assets/fonts/Fraunces-Regular.ttf',
+    'assets/fonts/Fraunces-Semibold.ttf',
+  ]);
+  await _loadFamily('Abril Fatface', const [
+    'assets/fonts/AbrilFatface-Regular.ttf',
+  ]);
   await _loadMaterialIcons();
 }
 

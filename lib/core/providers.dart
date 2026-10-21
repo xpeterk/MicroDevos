@@ -203,7 +203,7 @@ final todayProvider = FutureProvider<TodaySnapshot>((ref) async {
     editions: dates,
     selected: selected,
   );
-  final devos = edition == null ? <Devo>[] : await repo.devosForDate(edition);
+  final devos = await repo.search();
   return TodaySnapshot(
     edition: edition,
     devos: devosInReadingOrder(devos),

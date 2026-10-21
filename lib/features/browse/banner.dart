@@ -373,6 +373,12 @@ class _HeartBurstState extends State<HeartBurst>
   );
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.token > 0) _controller.forward(from: 0);
+  }
+
+  @override
   void didUpdateWidget(HeartBurst oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.token != oldWidget.token && widget.token > 0) {

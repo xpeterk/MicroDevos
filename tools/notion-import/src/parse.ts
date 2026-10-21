@@ -1,3 +1,4 @@
+import { encodeContent } from "./content.js";
 import type { CardMeta, ImportDecision, ParsedDevo, ScriptureQuote } from "./types.js";
 
 const numberedHeading = /^##\s+(\d+)\s*[·•|\-–—]\s+(.+?)\s*$/gm;
@@ -70,7 +71,7 @@ export function parseDevoMarkdown(markdown: string, meta: CardMeta = {}): Parsed
     devos.push({
       title: stripLeadingSymbols(heading[2].trim()),
       hook,
-      body_md: section.body,
+      body_md: encodeContent(section.body),
       takeaway: section.takeaway,
       verse_text: section.verseText,
       verse_ref: section.verseRef,

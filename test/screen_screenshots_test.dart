@@ -27,7 +27,7 @@ void main() {
     await _setPhoneSize(tester);
     await tester.pumpWidget(await buildSampleApp(themeMode: 'light'));
     await _showToday(tester, 'light');
-    await _showArchive(tester, 'light');
+    await _showDetail(tester, 'light');
     await _showFavorites(tester, 'light');
     await _showSettings(tester, 'light');
 
@@ -37,9 +37,10 @@ void main() {
 
     await tester.pageBack();
     await _settle(tester);
-    await tester.tap(find.byIcon(Icons.wb_sunny_outlined));
+    await tester.tap(find.text('Feed'));
+    await _settle(tester);
     await _showToday(tester, 'dark');
-    await _showArchive(tester, 'dark');
+    await _showDetail(tester, 'dark');
     await _showFavorites(tester, 'dark');
 
     expect(tester.takeException(), isNull);
@@ -68,15 +69,16 @@ Future<void> _showToday(WidgetTester tester, String theme) async {
   await _capture(tester, 'micro-devos-today-$theme');
 }
 
-Future<void> _showArchive(WidgetTester tester, String theme) async {
-  await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+Future<void> _showDetail(WidgetTester tester, String theme) async {
+  await tester.tap(find.byKey(const Key('banner-fri-1')));
   await _settle(tester);
-  expect(
-    find.text('Search the devotions, or browse by edition date.'),
-    findsOneWidget,
-  );
-  expect(find.text('Oct 16'), findsOneWidget);
-  await _capture(tester, 'micro-devos-archive-$theme');
+  await tester.pump(const Duration(milliseconds: 400));
+  expect(find.byKey(const Key('devo-detail')), findsOneWidget);
+  expect(find.byKey(const Key('back-to-feed')), findsOneWidget);
+  expect(find.textContaining('The refuge does not relocate'), findsOneWidget);
+  await _capture(tester, 'micro-devos-detail-$theme');
+  await tester.tap(find.byKey(const Key('back-to-feed')));
+  await _settle(tester);
 }
 
 Future<void> _showFavorites(WidgetTester tester, String theme) async {

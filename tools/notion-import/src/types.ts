@@ -33,7 +33,13 @@ export type ImportDecision =
 export type NotionRichText = {
   plain_text?: string;
   href?: string | null;
-  annotations?: { bold?: boolean; italic?: boolean; code?: boolean };
+  annotations?: {
+    bold?: boolean;
+    italic?: boolean;
+    code?: boolean;
+    underline?: boolean;
+    strikethrough?: boolean;
+  };
 };
 
 export type NotionBlock = {

@@ -31,7 +31,9 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
 
       await _pumpCard(tester, devo: _devo(imageUrl: null, imageAlt: null));
-      expect(find.text('IMAGE PLACEHOLDER'), findsOneWidget);
+      expect(find.text('IMAGE PLACEHOLDER'), findsNothing);
+      expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
+      expect(find.text('3 SEC'), findsOneWidget);
       await _capture(tester, 'build-banner-fallback');
 
       const imageUrl = 'https://example.com/notion-banner.png';
@@ -51,7 +53,7 @@ void main() {
         await tester.pump();
         expect(find.text('IMAGE PLACEHOLDER'), findsNothing);
         expect(find.bySemanticsLabel('A still morning'), findsOneWidget);
-        expect(find.text('A Refuge That Does Not Move'), findsNothing);
+        expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
         await _capture(tester, 'build-banner');
       } finally {
         debugNetworkImageHttpClientProvider = null;
