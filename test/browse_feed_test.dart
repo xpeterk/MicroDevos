@@ -40,7 +40,7 @@ void main() {
     expect(find.byKey(const Key('story-fri-1')), findsNothing);
     expect(find.text('Archive'), findsNothing);
     expect(find.textContaining('FRI, OCT 16'), findsOneWidget);
-    expect(find.text('3 SEC'), findsWidgets);
+    expect(find.text('3 SEC'), findsNothing);
     expect(
       find.textContaining('Before you react, sit for one quiet minute'),
       findsWidgets,

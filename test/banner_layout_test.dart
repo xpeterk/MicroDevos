@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +13,7 @@ import 'package:micro_devos/data/sample/sample_catalog.dart';
 import 'package:micro_devos/domain/models/devo.dart';
 import 'package:micro_devos/domain/models/devo_note.dart';
 import 'package:micro_devos/features/browse/feed_view.dart';
+import 'package:micro_devos/features/browse/style_banner.dart';
 import 'package:micro_devos/features/devo/devo_detail_screen.dart';
 import 'package:micro_devos/shared/widgets/reading_widgets.dart';
 
@@ -124,7 +126,7 @@ void main() {
 
       expect(find.text('IMAGE PLACEHOLDER'), findsNothing);
       expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
-      expect(find.text('3 SEC'), findsOneWidget);
+      expect(find.text('3 SEC'), findsNothing);
       expect(find.textContaining('Sit for one quiet minute.'), findsOneWidget);
       expect(find.bySemanticsLabel('A still morning'), findsOneWidget);
 
@@ -135,7 +137,7 @@ void main() {
       final banner = tester.getRect(find.byKey(const Key('banner-wide-1')));
       expect(banner.left, closeTo(16, 1));
       expect(banner.width, closeTo(358, 1));
-      expect(banner.height, closeTo(236, 1));
+      expect(banner.height, closeTo(kStyleBannerHeight, 1));
 
       await _capture(
         tester,
@@ -158,10 +160,10 @@ void main() {
     await tester.pump();
     expect(find.text('IMAGE PLACEHOLDER'), findsNothing);
     expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
-    expect(find.text('3 SEC'), findsOneWidget);
+    expect(find.text('3 SEC'), findsNothing);
     expect(find.byKey(const ValueKey('banner-photo-')), findsNothing);
     final banner = tester.getSize(find.byKey(const Key('banner-wide-1')));
-    expect(banner.height, closeTo(236, 1));
+    expect(banner.height, closeTo(kStyleBannerHeight, 1));
   });
 
   testWidgets(
@@ -188,7 +190,7 @@ void main() {
         expect(post.left, closeTo((view.width - feedContentMaxWidth) / 2, 1));
         expect(banner.left, closeTo(post.left + 16, 1));
         expect(banner.width, closeTo(post.width - 32, 1));
-        expect(banner.height, closeTo(236, 1));
+        expect(banner.height, closeTo(kStyleBannerHeight, 1));
         expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
 
         final image = tester.widget<Image>(
@@ -201,6 +203,74 @@ void main() {
       }
     },
   );
+
+  test('a banner summary keeps three sentences and drops the rest', () {
+    const fourth = 'This fourth sentence stays off the banner.';
+    const three =
+        'Sit with God before you answer the day. Tell him the one thing that feels too heavy. Leave that weight with him and take the next small step.';
+    final clipped = bannerSummary(
+      _devo(position: 1, takeaway: '$three $fourth'),
+    );
+    expect(clipped, three);
+    expect(clipped.contains(fourth), isFalse);
+    expect(clipped.contains('…'), isFalse);
+    expect(clipped.endsWith('...'), isFalse);
+
+    expect(
+      bannerSummary(
+        _devo(
+          position: 1,
+          takeaway: '',
+          hook: 'Hold the promise. Then walk. Then rest. Then extra.',
+        ),
+      ),
+      'Hold the promise. Then walk. Then rest.',
+    );
+    expect(
+      bannerSummary(_devo(position: 1, takeaway: 'Hold still and trust')),
+      'Hold still and trust',
+    );
+    expect(
+      clipToSentences(
+        'Read Psalm 46.1 slowly. Then pray. Then rest. Then extra.',
+        3,
+      ),
+      'Read Psalm 46.1 slowly. Then pray. Then rest.',
+    );
+  });
+
+  testWidgets('positions 1 to 8 show three sentences and no 3 SEC label', (
+    tester,
+  ) async {
+    const shown =
+        'Sit with God before you answer the day. Tell him the one thing that feels too heavy. Leave that weight with him and take the next small step.';
+    const hidden = 'This fourth sentence stays off the banner.';
+    for (var position = 1; position <= 8; position++) {
+      await _pumpSurface(
+        tester,
+        size: const Size(390, 900),
+        child: _stylePost(position),
+      );
+      expect(find.text('3 SEC'), findsNothing);
+      expect(find.textContaining(hidden), findsNothing);
+      expect(find.text(shown), findsOneWidget);
+      final paragraph = tester.renderObject<RenderParagraph>(find.text(shown));
+      expect(paragraph.didExceedMaxLines, isFalse);
+      final banner = tester.getRect(find.byKey(Key('banner-style-$position')));
+      final summary = tester.getRect(find.text(shown));
+      expect(banner.height, closeTo(kStyleBannerHeight, 1));
+      expect(summary.top, greaterThanOrEqualTo(banner.top - 0.5));
+      expect(summary.bottom, lessThanOrEqualTo(banner.bottom + 0.5));
+      expect(summary.left, greaterThanOrEqualTo(banner.left - 0.5));
+      expect(summary.right, lessThanOrEqualTo(banner.right + 0.5));
+      expect(tester.takeException(), isNull);
+      await _capture(
+        tester,
+        find.byKey(Key('banner-style-$position')),
+        'feed-style-$position',
+      );
+    }
+  });
 }
 
 Future<void> _pumpSurface(
@@ -275,15 +345,67 @@ Future<void> _capture(WidgetTester tester, Finder finder, String name) async {
   artifact.writeAsBytesSync(bytes);
 }
 
-Devo _devo({required int position, String? imageUrl}) {
+Widget _stylePost(int position) {
+  return Align(
+    alignment: Alignment.topCenter,
+    child: SingleChildScrollView(
+      child: FeedPost(
+        devo: _styleDevo(position),
+        total: 8,
+        label: 'Courage',
+        catalog: null,
+      ),
+    ),
+  );
+}
+
+Devo _styleDevo(int position) {
+  const titles = [
+    'A Refuge That Does Not Move',
+    'The Right Hand You Cannot See',
+    'Leave the List with Him',
+    'The Shepherd Who Knows the Pasture',
+    'All Things, Not All Easy',
+    'Strong Because He Goes With You',
+    'Peace With a Name',
+    'Come Near Before You Feel Ready',
+  ];
+  const refs = [
+    'Psalm 46:1',
+    'Isaiah 41:10',
+    'Philippians 4:6',
+    'Psalm 23:1',
+    'Romans 8:28',
+    'Joshua 1:9',
+    'John 14:27',
+    'Hebrews 4:16',
+  ];
+  return _devo(
+    position: position,
+    id: 'style-$position',
+    title: titles[position - 1],
+    verseRef: refs[position - 1],
+    takeaway: 'Sit with God before you answer the day. Tell him the one thing that feels too heavy. Leave that weight with him and take the next small step. This fourth sentence stays off the banner.',
+  );
+}
+
+Devo _devo({
+  required int position,
+  String? imageUrl,
+  String? id,
+  String? title,
+  String? hook,
+  String? takeaway,
+  String? verseRef,
+}) {
   return Devo(
-    id: 'wide-$position',
-    title: 'A Refuge That Does Not Move',
-    hook: 'The day can shake without moving the place you stand.',
+    id: id ?? 'wide-$position',
+    title: title ?? 'A Refuge That Does Not Move',
+    hook: hook ?? 'The day can shake without moving the place you stand.',
     bodyMd: 'The refuge does not relocate when the headlines do.',
-    takeaway: 'Sit for one quiet minute.',
+    takeaway: takeaway ?? 'Sit for one quiet minute.',
     verseText: 'God is our refuge and strength.',
-    verseRef: 'Psalm 46:1',
+    verseRef: verseRef ?? 'Psalm 46:1',
     scriptures: const [],
     editionDate: DateTime(2026, 10, 19),
     position: position,

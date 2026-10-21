@@ -36,12 +36,63 @@ String bannerFrameLabel(BannerFrame frame) {
   };
 }
 
+/// Height of every feed banner. Tall enough for a title plus three sentences.
+const double kStyleBannerHeight = 348;
+
 /// Takeaway when the devotion has one, otherwise the hook.
-String threeSecondSummary(Devo devo) {
+/// At most three complete sentences, with nothing added and nothing cut mid-sentence.
+String bannerSummary(Devo devo) {
   final takeaway = devo.takeaway.trim();
-  if (takeaway.isNotEmpty) return takeaway;
-  return devo.hook.trim();
+  final source = takeaway.isNotEmpty ? takeaway : devo.hook.trim();
+  return clipToSentences(source, 3);
 }
+
+/// Keeps the first [maxSentences] sentence endings.
+/// A passage with fewer endings is returned whole.
+String clipToSentences(String text, int maxSentences) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty || maxSentences <= 0) return '';
+  final terminator = RegExp('[.!?]+');
+  var kept = 0;
+  for (final match in terminator.allMatches(trimmed)) {
+    if (_skipsSentenceBreak(trimmed, match)) continue;
+    kept++;
+    if (kept == maxSentences) {
+      return trimmed.substring(0, match.end).trim();
+    }
+  }
+  return trimmed;
+}
+
+bool _skipsSentenceBreak(String text, RegExpMatch match) {
+  final token = match.group(0)!;
+  if (token.contains('.')) {
+    final before = match.start > 0 ? text[match.start - 1] : '';
+    final after = match.end < text.length ? text[match.end] : '';
+    if (_isDigit(before) && _isDigit(after)) return true;
+  }
+  if (token != '.') return false;
+  final word = RegExp(r'[A-Za-z]+$').firstMatch(text.substring(0, match.start));
+  if (word == null) return false;
+  final letters = word.group(0)!;
+  if (letters.length == 1) return true;
+  const abbreviations = {
+    'mr',
+    'mrs',
+    'ms',
+    'dr',
+    'st',
+    'sr',
+    'jr',
+    'ps',
+    'rev',
+    'vs',
+  };
+  return abbreviations.contains(letters.toLowerCase());
+}
+
+bool _isDigit(String char) =>
+    char.length == 1 && char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;
 
 class StyleBanner extends StatelessWidget {
   const StyleBanner({
@@ -71,7 +122,7 @@ class StyleBanner extends StatelessWidget {
       onTap: onTap,
       onDoubleTap: onDoubleTap,
       child: SizedBox(
-        height: 236,
+        height: kStyleBannerHeight,
         width: double.infinity,
         child: _Frame(
           devo: devo,
@@ -171,21 +222,35 @@ class _PhotoScrim extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _TopRow(devo: devo, total: total, tag: tag, onDark: true),
-              const Spacer(),
-              Text(
-                devo.title,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Playfair Display',
-                  fontSize: 28,
-                  height: 1.05,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+              Expanded(
+                child: _ScaleDown(
+                  children: [
+                    Text(
+                      devo.title,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Playfair Display',
+                        fontSize: 28,
+                        height: 1.05,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    _SummaryPlate(
+                      text: bannerSummary(devo),
+                      fill: const Color(0xE614110E),
+                      style: const TextStyle(
+                        fontFamily: AppTheme.sans,
+                        fontSize: 15,
+                        height: 1.3,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              _SummaryPill(text: threeSecondSummary(devo), onDark: true),
             ],
           ),
         ),
@@ -218,21 +283,35 @@ class _Duotone extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _TopRow(devo: devo, total: total, tag: tag, onDark: true),
-              const Spacer(),
-              Text(
-                devo.title,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Space Grotesk',
-                  fontSize: 28,
-                  height: 1.05,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+              Expanded(
+                child: _ScaleDown(
+                  children: [
+                    Text(
+                      devo.title,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Space Grotesk',
+                        fontSize: 28,
+                        height: 1.05,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    _SummaryPlate(
+                      text: bannerSummary(devo),
+                      fill: const Color(0xE614110E),
+                      style: const TextStyle(
+                        fontFamily: AppTheme.sans,
+                        fontSize: 15,
+                        height: 1.3,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              _SummaryPill(text: threeSecondSummary(devo), onDark: true),
             ],
           ),
         ),
@@ -277,48 +356,58 @@ class _TypePoster extends StatelessWidget {
                   onDark: false,
                   ink: const Color(0xFF2A2418),
                 ),
-                const Spacer(),
-                Text(
-                  kicker,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: 'Playfair Display',
-                    fontStyle: FontStyle.italic,
-                    fontSize: 18,
-                    height: 1,
-                    color: Color(0xFF2A2418),
+                Expanded(
+                  child: _ScaleDown(
+                    children: [
+                      Text(
+                        kicker,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Playfair Display',
+                          fontStyle: FontStyle.italic,
+                          fontSize: 18,
+                          height: 1,
+                          color: Color(0xFF2A2418),
+                        ),
+                      ),
+                      Text(
+                        headline.toUpperCase(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Bebas Neue',
+                          fontSize: 34,
+                          height: 0.9,
+                          letterSpacing: 0.4,
+                          color: Color(0xFFB42318),
+                        ),
+                      ),
+                      if (rest.isNotEmpty)
+                        Text(
+                          rest,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Caveat',
+                            fontSize: 22,
+                            height: 1,
+                            color: Color(0xFF2A2418),
+                          ),
+                        ),
+                      _SummaryPlate(
+                        text: bannerSummary(devo),
+                        fill: const Color(0xFF241B4B),
+                        style: const TextStyle(
+                          fontFamily: AppTheme.sans,
+                          fontSize: 15,
+                          height: 1.3,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Text(
-                  headline.toUpperCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: 'Bebas Neue',
-                    fontSize: 34,
-                    height: 0.9,
-                    letterSpacing: 0.4,
-                    color: Color(0xFFB42318),
-                  ),
-                ),
-                if (rest.isNotEmpty)
-                  Text(
-                    rest,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: 'Caveat',
-                      fontSize: 22,
-                      height: 1,
-                      color: Color(0xFF2A2418),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                _SummaryPill(
-                  text: threeSecondSummary(devo),
-                  onDark: true,
-                  fill: const Color(0xFF241B4B),
                 ),
               ],
             ),
@@ -351,37 +440,51 @@ class _OutlinedScripture extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _TopRow(devo: devo, total: total, tag: tag, onDark: true),
-            const Spacer(),
-            Text(
-              reference,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 42,
-                height: 1,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.5,
-                foreground: Paint()
-                  ..style = PaintingStyle.stroke
-                  ..strokeWidth = 1.2
-                  ..color = const Color(0xFFE7A07A),
+            Expanded(
+              child: _ScaleDown(
+                children: [
+                  Text(
+                    reference,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 42,
+                      height: 1,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.5,
+                      foreground: Paint()
+                        ..style = PaintingStyle.stroke
+                        ..strokeWidth = 1.2
+                        ..color = const Color(0xFFE7A07A),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    devo.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFF4EEE6),
+                    ),
+                  ),
+                  _SummaryPlate(
+                    text: bannerSummary(devo),
+                    fill: const Color(0xE614110E),
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sans,
+                      fontSize: 15,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              devo.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFFF4EEE6),
-              ),
-            ),
-            const SizedBox(height: 8),
-            _SummaryPill(text: threeSecondSummary(devo), onDark: true),
           ],
         ),
       ),
@@ -427,23 +530,33 @@ class _SplitImage extends StatelessWidget {
                     onDark: false,
                     ink: const Color(0xFF2A2420),
                   ),
-                  const Spacer(),
-                  Text(
-                    devo.title,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: 'DM Serif Display',
-                      fontSize: 26,
-                      height: 1.05,
-                      color: Color(0xFF2A2420),
+                  Expanded(
+                    child: _ScaleDown(
+                      children: [
+                        Text(
+                          devo.title,
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'DM Serif Display',
+                            fontSize: 24,
+                            height: 1.05,
+                            color: Color(0xFF2A2420),
+                          ),
+                        ),
+                        _SummaryPlate(
+                          text: bannerSummary(devo),
+                          fill: const Color(0xFF1E3A5F),
+                          style: const TextStyle(
+                            fontFamily: AppTheme.sans,
+                            fontSize: 14,
+                            height: 1.28,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  _SummaryPill(
-                    text: threeSecondSummary(devo),
-                    onDark: true,
-                    fill: const Color(0xFF1E3A5F),
                   ),
                 ],
               ),
@@ -482,36 +595,33 @@ class _HandLettered extends StatelessWidget {
               onDark: false,
               ink: const Color(0xFF3A2A1C),
             ),
-            const Spacer(),
-            Text(
-              devo.title,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontFamily: 'Caveat',
-                fontSize: 34,
-                height: 1,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFFF8F3EA),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF6E7C8),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                threeSecondSummary(devo),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Caveat',
-                  fontSize: 18,
-                  height: 1.15,
-                  color: Color(0xFF3A2A1C),
-                ),
+            Expanded(
+              child: _ScaleDown(
+                children: [
+                  Text(
+                    devo.title,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Caveat',
+                      fontSize: 34,
+                      height: 1,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFF8F3EA),
+                    ),
+                  ),
+                  _SummaryPlate(
+                    text: bannerSummary(devo),
+                    fill: const Color(0xFFF6E7C8),
+                    radius: 12,
+                    style: const TextStyle(
+                      fontFamily: 'Caveat',
+                      fontSize: 20,
+                      height: 1.15,
+                      color: Color(0xFF3A2A1C),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -547,30 +657,32 @@ class _Minimal extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Container(height: 1, color: const Color(0xFFE4D8C8)),
-            const Spacer(),
-            Text(
-              devo.title,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontFamily: 'Fraunces',
-                fontSize: 30,
-                height: 1.05,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2A2420),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              threeSecondSummary(devo),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontFamily: 'Fraunces',
-                fontSize: 14,
-                height: 1.3,
-                fontStyle: FontStyle.italic,
-                color: Color(0xFF6E645C),
+            Expanded(
+              child: _ScaleDown(
+                children: [
+                  Text(
+                    devo.title,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Fraunces',
+                      fontSize: 30,
+                      height: 1.05,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2A2420),
+                    ),
+                  ),
+                  _SummaryPlate(
+                    text: bannerSummary(devo),
+                    style: const TextStyle(
+                      fontFamily: 'Fraunces',
+                      fontSize: 16,
+                      height: 1.3,
+                      fontStyle: FontStyle.italic,
+                      color: Color(0xFF6E645C),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -597,58 +709,64 @@ class _Collage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _TopRow(devo: devo, total: total, tag: tag, onDark: true),
-            const Spacer(),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        devo.title,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontFamily: 'Abril Fatface',
-                          fontSize: 28,
-                          height: 1.02,
-                          color: Color(0xFFF4EEE6),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _SummaryPill(
-                        text: threeSecondSummary(devo),
-                        onDark: true,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 92,
-                  height: 108,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Transform.rotate(
-                        angle: -0.08,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: _ArtPhoto(
-                            devo: devo,
-                            fallback: const [
-                              Color(0xFFD7A24A),
-                              Color(0xFF8C4E2A),
-                            ],
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: _ScaleDown(
+                      children: [
+                        Text(
+                          devo.title,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Abril Fatface',
+                            fontSize: 26,
+                            height: 1.02,
+                            color: Color(0xFFF4EEE6),
                           ),
                         ),
-                      ),
-                      const Positioned(right: -6, top: -8, child: _Stamp()),
-                    ],
+                        _SummaryPlate(
+                          text: bannerSummary(devo),
+                          fill: const Color(0xE614110E),
+                          style: const TextStyle(
+                            fontFamily: AppTheme.sans,
+                            fontSize: 14,
+                            height: 1.28,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 92,
+                    height: 108,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Transform.rotate(
+                          angle: -0.08,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: _ArtPhoto(
+                              devo: devo,
+                              fallback: const [
+                                Color(0xFFD7A24A),
+                                Color(0xFF8C4E2A),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Positioned(right: -6, top: -8, child: _Stamp()),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -799,63 +917,64 @@ class _TopRow extends StatelessWidget {
   }
 }
 
-class _SummaryPill extends StatelessWidget {
-  const _SummaryPill({required this.text, required this.onDark, this.fill});
+/// Pins a title and its summary to the bottom of the banner and shrinks
+/// the block, rather than clipping a sentence, when the copy is long.
+class _ScaleDown extends StatelessWidget {
+  const _ScaleDown({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.bottomLeft,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SummaryPlate extends StatelessWidget {
+  const _SummaryPlate({
+    required this.text,
+    required this.style,
+    this.fill,
+    this.radius = 14,
+  });
 
   final String text;
-  final bool onDark;
+  final TextStyle style;
   final Color? fill;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
     if (text.isEmpty) return const SizedBox.shrink();
-    final background =
-        fill ?? (onDark ? const Color(0xE614110E) : const Color(0xFFF4EEE6));
-    final foreground = onDark || fill != null
-        ? Colors.white
-        : const Color(0xFF2A2420);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(8, 6, 10, 6),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              '3 SEC',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.3,
-                color: Color(0xFF2A2420),
+    final label = Text(text, style: style);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: fill == null
+          ? label
+          : Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              decoration: BoxDecoration(
+                color: fill,
+                borderRadius: BorderRadius.circular(radius),
               ),
+              child: label,
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: AppTheme.sans,
-                fontSize: 13,
-                height: 1.25,
-                fontWeight: FontWeight.w600,
-                color: foreground,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
