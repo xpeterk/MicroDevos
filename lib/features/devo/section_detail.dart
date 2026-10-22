@@ -153,33 +153,31 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
                 ),
               ),
             ),
-            Padding(
-              key: _listKey,
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
-              child: Text(
-                'IN THIS DEVO',
-                style: TextStyle(
-                  fontFamily: AppTheme.sans,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            for (final section in sections)
+            _LessonCard(key: _listKey, devo: devo, count: sections.length),
+            for (var index = 0; index < sections.length; index++) ...[
+              if (index > 0) const _FlowConnector(),
               KeyedSubtree(
-                key: section.id == widget.initialSectionId ? _focusKey : null,
+                key: sections[index].id == widget.initialSectionId
+                    ? _focusKey
+                    : null,
                 child: _SectionBlock(
                   devo: devo,
-                  section: section,
+                  section: sections[index],
                   count: sections.length,
-                  expanded: _expanded.contains(section.position),
-                  liked: liked.any((item) => item.sectionId == section.id),
-                  noted: notes.any((note) => note.sectionId == section.id),
-                  onToggle: () => _toggle(section.position),
+                  next: index + 1 < sections.length
+                      ? sections[index + 1]
+                      : null,
+                  expanded: _expanded.contains(sections[index].position),
+                  liked: liked.any(
+                    (item) => item.sectionId == sections[index].id,
+                  ),
+                  noted: notes.any(
+                    (note) => note.sectionId == sections[index].id,
+                  ),
+                  onToggle: () => _toggle(sections[index].position),
                 ),
               ),
+            ],
           ],
         ),
         if (_showSummary && !noting)
@@ -199,8 +197,8 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
                     icon: const Icon(Icons.keyboard_arrow_up, size: 18),
                     label: const Text('Summary'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF241B4B),
-                      foregroundColor: const Color(0xFFF2C94C),
+                      backgroundColor: AppColors.lessonNavy,
+                      foregroundColor: AppColors.lessonGold,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 8,
@@ -237,7 +235,7 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
                 icon: const Icon(Icons.keyboard_arrow_down),
                 label: const Text('Back to feed'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2A2420),
+                  backgroundColor: AppColors.body,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 18,
@@ -277,7 +275,7 @@ class _ProgressBar extends StatelessWidget {
               margin: EdgeInsets.only(left: index == 0 ? 0 : 4),
               decoration: BoxDecoration(
                 color: index < filled
-                    ? const Color(0xFF241B4B)
+                    ? AppColors.lessonNavy
                     : const Color(0xFFD9D0C4),
                 borderRadius: BorderRadius.circular(2),
               ),
@@ -288,11 +286,109 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
+class _LessonCard extends StatelessWidget {
+  const _LessonCard({required this.devo, required this.count, super.key});
+
+  final Devo devo;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final lineWord = count == 1 ? 'LINE' : 'LINES';
+    final takeaway = devo.takeaway.trim();
+    final ref = devo.verseRef.trim();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+      child: DecoratedBox(
+        key: const Key('todays-lesson'),
+        decoration: BoxDecoration(
+          color: AppColors.lessonNavy,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "TODAY'S LESSON · READ THE $count $lineWord BELOW",
+                style: const TextStyle(
+                  fontFamily: AppTheme.sans,
+                  fontSize: 12,
+                  height: 1.3,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                  color: AppColors.lessonGold,
+                ),
+              ),
+              if (takeaway.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  takeaway,
+                  key: const Key('lesson-takeaway'),
+                  style: const TextStyle(
+                    fontFamily: AppTheme.serif,
+                    fontSize: 22,
+                    height: 1.25,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+              if (ref.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  ref,
+                  key: const Key('lesson-verse-ref'),
+                  style: const TextStyle(
+                    fontFamily: AppTheme.sans,
+                    fontSize: 15,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.lessonRef,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FlowConnector extends StatelessWidget {
+  const _FlowConnector();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      key: const Key('flow-connector'),
+      height: 18,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 41),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: 2,
+            height: 18,
+            child: ColoredBox(
+              color: dark ? const Color(0xFF3A342E) : const Color(0xFFD9D0C4),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SectionBlock extends ConsumerWidget {
   const _SectionBlock({
     required this.devo,
     required this.section,
     required this.count,
+    required this.next,
     required this.expanded,
     required this.liked,
     required this.noted,
@@ -302,6 +398,7 @@ class _SectionBlock extends ConsumerWidget {
   final Devo devo;
   final DevoSection section;
   final int count;
+  final DevoSection? next;
   final bool expanded;
   final bool liked;
   final bool noted;
@@ -310,15 +407,18 @@ class _SectionBlock extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final brightness = Theme.of(context).brightness;
     final caption =
         'Part ${section.position} · ${section.title} — ${devo.title}';
+    final summary = section.summary.trim();
+    final refText = section.verseRef.trim();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Material(
-        color: const Color(0xFFFFFCF8),
+        color: scheme.surfaceContainerLowest,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: Color(0xFFE4D8C8)),
+          side: BorderSide(color: scheme.outline),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -328,7 +428,7 @@ class _SectionBlock extends ConsumerWidget {
               key: Key('section-bullet-${section.id}'),
               onTap: onToggle,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -337,7 +437,7 @@ class _SectionBlock extends ConsumerWidget {
                       height: 28,
                       alignment: Alignment.center,
                       decoration: const BoxDecoration(
-                        color: Color(0xFF241B4B),
+                        color: AppColors.lessonNavy,
                         shape: BoxShape.circle,
                       ),
                       child: Text(
@@ -355,44 +455,68 @@ class _SectionBlock extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            section.title,
-                            style: const TextStyle(
-                              fontFamily: AppTheme.sans,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF2A2420),
-                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  section.title,
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.sans,
+                                    fontSize: 16,
+                                    height: 1.25,
+                                    fontWeight: FontWeight.w700,
+                                    color: scheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  '${section.minutes} min',
+                                  style: TextStyle(
+                                    fontFamily: AppTheme.sans,
+                                    fontSize: 12,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                expanded
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ],
                           ),
-                          if (section.summary.trim().isNotEmpty) ...[
-                            const SizedBox(height: 2),
+                          if (summary.isNotEmpty) ...[
+                            const SizedBox(height: 4),
                             Text(
-                              section.summary,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                              summary,
+                              style: TextStyle(
+                                fontFamily: AppTheme.sans,
+                                fontSize: 15,
+                                height: 1.35,
+                                color: AppColors.summaryInk(brightness),
+                              ),
+                            ),
+                          ],
+                          if (refText.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              refText,
+                              key: Key('section-ref-${section.id}'),
                               style: TextStyle(
                                 fontFamily: AppTheme.sans,
                                 fontSize: 14,
-                                height: 1.3,
-                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.readingRef(brightness),
                               ),
                             ),
                           ],
                         ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${section.minutes} min',
-                      style: TextStyle(
-                        fontFamily: AppTheme.sans,
-                        fontSize: 12,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    Icon(
-                      expanded ? Icons.expand_less : Icons.expand_more,
-                      color: scheme.onSurfaceVariant,
                     ),
                   ],
                 ),
@@ -412,8 +536,7 @@ class _SectionBlock extends ConsumerWidget {
                   tagLabel: section.tags.isEmpty ? null : section.tags.first,
                 ),
               ),
-              if (section.verseText.trim().isNotEmpty ||
-                  section.verseRef.trim().isNotEmpty)
+              if (section.verseText.trim().isNotEmpty || refText.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                   child: VerseCard(
@@ -435,11 +558,13 @@ class _SectionBlock extends ConsumerWidget {
                               key: Key('section-tag-${section.id}-$slug'),
                               label: Text(slug.toUpperCase()),
                               visualDensity: VisualDensity.compact,
-                              backgroundColor: const Color(0xFFF3E6C8),
+                              backgroundColor: AppColors.chipFill,
+                              side: BorderSide.none,
                               labelStyle: const TextStyle(
                                 fontFamily: AppTheme.sans,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
+                                color: AppColors.chipInk,
                               ),
                             ),
                         ],
@@ -468,7 +593,9 @@ class _SectionBlock extends ConsumerWidget {
                           ),
                       icon: Icon(
                         Icons.sticky_note_2_outlined,
-                        color: noted ? AppColors.line : scheme.onSurface,
+                        color: noted
+                            ? AppColors.notedMark(brightness)
+                            : scheme.onSurface,
                       ),
                     ),
                   ],
@@ -478,6 +605,23 @@ class _SectionBlock extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                 child: DevoBody(markdown: section.body),
               ),
+              if (next != null) ...[
+                Divider(height: 1, color: scheme.outline),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                  child: Text(
+                    'Next in the flow → ${next!.position} · ${next!.title}',
+                    key: Key('section-next-${section.id}'),
+                    style: TextStyle(
+                      fontFamily: AppTheme.sans,
+                      fontSize: 14,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.summaryInk(brightness),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ],
         ),

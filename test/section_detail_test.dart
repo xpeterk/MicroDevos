@@ -50,10 +50,23 @@ void main() {
 
     expect(find.byKey(const Key('section-meta')), findsOneWidget);
     expect(find.text('3 sections · 5 min · Hebrews 4:16'), findsOneWidget);
-    expect(find.text('IN THIS DEVO'), findsOneWidget);
+    expect(find.text('IN THIS DEVO'), findsNothing);
+    expect(find.byKey(const Key('todays-lesson')), findsOneWidget);
+    expect(find.textContaining("TODAY'S LESSON"), findsOneWidget);
+    expect(find.byKey(const Key('lesson-takeaway')), findsOneWidget);
+    expect(find.byKey(const Key('lesson-verse-ref')), findsOneWidget);
+    expect(find.text('Hebrews 4:16'), findsWidgets);
+    expect(find.text('James 1:5'), findsOneWidget);
+    expect(
+      find.byKey(const Key('flow-connector'), skipOffstage: false),
+      findsNWidgets(2),
+    );
     expect(find.text('Come Before You Feel Worthy'), findsOneWidget);
     expect(find.text('Ask for the Next Hour'), findsOneWidget);
-    expect(find.text('Mercy Meets You There'), findsOneWidget);
+    expect(
+      find.text('Mercy Meets You There', skipOffstage: false),
+      findsOneWidget,
+    );
     expect(
       find.textContaining('Some of us wait to pray until we feel worthy'),
       findsNothing,
@@ -75,7 +88,22 @@ void main() {
     expect(find.textContaining('come boldly'), findsWidgets);
     expect(find.byKey(const Key('section-heart-fri-8-s1')), findsOneWidget);
     expect(find.byKey(const Key('section-note-fri-8-s1')), findsOneWidget);
+    expect(
+      find.text(
+        'Next in the flow → 2 · Ask for the Next Hour',
+        skipOffstage: false,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('section-next-fri-8-s3'), skipOffstage: false),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
+    await tester.ensureVisible(
+      find.byKey(const Key('section-next-fri-8-s1'), skipOffstage: false),
+    );
+    await tester.pump();
     await _capture(tester, 'section-expanded');
 
     final scroll = tester
@@ -93,7 +121,7 @@ void main() {
     await tester.tap(find.byKey(const Key('jump-summary')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('IN THIS DEVO'), findsOneWidget);
+    expect(find.textContaining("TODAY'S LESSON"), findsOneWidget);
 
     await tester.ensureVisible(find.byKey(const Key('section-heart-fri-8-s1')));
     await tester.pump();

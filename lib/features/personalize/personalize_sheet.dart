@@ -550,7 +550,7 @@ class _WhatStep extends ConsumerWidget {
                       fontSize: 12,
                       letterSpacing: 0.6,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.line,
+                      color: AppColors.verseRef,
                     ),
                   ),
                 ],
@@ -708,7 +708,11 @@ class _StyleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tone = ChipTone.resolve(scheme, selected: selected);
-    final blurbColor = classic ? scheme.secondary : scheme.onSurfaceVariant;
+    final blurbColor = classic
+        ? (Theme.of(context).brightness == Brightness.dark
+              ? AppColors.nightOlive
+              : AppColors.chipInk)
+        : scheme.onSurfaceVariant;
     return Material(
       color: tone.background,
       shape: RoundedRectangleBorder(
@@ -754,7 +758,7 @@ class _StyleCard extends StatelessWidget {
                           fontFamily: AppTheme.sans,
                           fontSize: 11,
                           height: 1.25,
-                          color: scheme.secondary,
+                          color: blurbColor,
                         ),
                       ),
                   ],

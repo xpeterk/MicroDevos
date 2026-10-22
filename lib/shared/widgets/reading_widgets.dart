@@ -118,7 +118,9 @@ class DevoCard extends StatelessWidget {
                       devo.verseRef,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         fontFamily: AppTheme.sans,
-                        color: scheme.primary,
+                        color: AppColors.readingRef(
+                          Theme.of(context).brightness,
+                        ),
                       ),
                     ),
                   ],
@@ -174,7 +176,7 @@ class VerseCard extends StatelessWidget {
             reference,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
               fontFamily: AppTheme.sans,
-              color: Theme.of(context).colorScheme.primary,
+              color: AppColors.readingRef(Theme.of(context).brightness),
             ),
           ),
           if (note != null) ...[
@@ -227,7 +229,6 @@ class ScriptureList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (quotes.isEmpty) return const SizedBox.shrink();
-    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -242,8 +243,10 @@ class ScriptureList extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             quote.reference,
-            style: Theme.of(context).textTheme.labelMedium
-                ?.copyWith(fontFamily: AppTheme.sans, color: scheme.primary),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              fontFamily: AppTheme.sans,
+              color: AppColors.readingRef(Theme.of(context).brightness),
+            ),
           ),
           const SizedBox(height: 14),
         ],

@@ -86,10 +86,9 @@ class _NotePaneState extends ConsumerState<NotePane> {
   Widget build(BuildContext context) {
     final draft = ref.watch(noteDraftProvider);
     if (draft == null) return const SizedBox.shrink();
-    final scheme = Theme.of(context).colorScheme;
     return Material(
       key: const Key('note-editor'),
-      color: const Color(0xFFF8E7A2),
+      color: AppColors.noteFill,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
         child: Column(
@@ -106,24 +105,30 @@ class _NotePaneState extends ConsumerState<NotePane> {
                     fontFamily: AppTheme.sans,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF3A2A1C),
+                    color: AppColors.body,
                   ),
                 ),
               ),
             Row(
               children: [
-                const Icon(Icons.sticky_note_2_outlined, size: 18),
+                const Icon(
+                  Icons.sticky_note_2_outlined,
+                  size: 18,
+                  color: AppColors.body,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   'My note',
-                  style: Theme.of(context).textTheme.titleSmall
-                      ?.copyWith(fontFamily: AppTheme.sans),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontFamily: AppTheme.sans,
+                    color: AppColors.body,
+                  ),
                 ),
                 const Spacer(),
                 IconButton(
                   tooltip: 'Delete note',
                   onPressed: _trash,
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(Icons.delete_outline, color: AppColors.body),
                 ),
                 FilledButton(
                   key: const Key('note-done'),
@@ -136,7 +141,7 @@ class _NotePaneState extends ConsumerState<NotePane> {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF6CC),
+                color: AppColors.notePaper,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: draft.hasAnchor
@@ -150,7 +155,7 @@ class _NotePaneState extends ConsumerState<NotePane> {
                                 fontFamily: AppTheme.sans,
                                 letterSpacing: 1,
                                 fontWeight: FontWeight.w600,
-                                color: scheme.primary,
+                                color: AppColors.olive,
                               ),
                         ),
                         const SizedBox(height: 4),
@@ -161,13 +166,18 @@ class _NotePaneState extends ConsumerState<NotePane> {
                             fontFamily: AppTheme.serif,
                             fontStyle: FontStyle.italic,
                             fontSize: 15,
+                            color: AppColors.body,
                           ),
                         ),
                       ],
                     )
                   : const Text(
                       'Select a passage in the devo to anchor this note.',
-                      style: TextStyle(fontFamily: AppTheme.sans, fontSize: 14),
+                      style: TextStyle(
+                        fontFamily: AppTheme.sans,
+                        fontSize: 14,
+                        color: AppColors.body,
+                      ),
                     ),
             ),
             const SizedBox(height: 8),
@@ -176,19 +186,28 @@ class _NotePaneState extends ConsumerState<NotePane> {
               controller: _body,
               minLines: 2,
               maxLines: 4,
-              style: const TextStyle(fontFamily: AppTheme.serif, fontSize: 16),
+              style: const TextStyle(
+                fontFamily: AppTheme.serif,
+                fontSize: 16,
+                color: AppColors.body,
+              ),
+              cursorColor: AppColors.body,
               decoration: const InputDecoration(
                 isDense: true,
                 hintText: 'Write a private note',
+                hintStyle: TextStyle(
+                  fontFamily: AppTheme.sans,
+                  color: AppColors.meta,
+                ),
                 border: InputBorder.none,
               ),
             ),
-            Text(
+            const Text(
               'Private to you · saved with this devo',
               style: TextStyle(
                 fontFamily: AppTheme.sans,
                 fontSize: 12,
-                color: scheme.onSurfaceVariant,
+                color: AppColors.meta,
               ),
             ),
           ],

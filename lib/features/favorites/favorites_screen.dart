@@ -473,7 +473,7 @@ class _NoteGroupCard extends ConsumerWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8E7A2),
+                        color: AppColors.noteFill,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -481,6 +481,7 @@ class _NoteGroupCard extends ConsumerWidget {
                         style: const TextStyle(
                           fontFamily: AppTheme.serif,
                           fontSize: 15,
+                          color: AppColors.body,
                         ),
                       ),
                     ),

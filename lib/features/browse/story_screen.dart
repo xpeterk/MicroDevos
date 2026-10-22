@@ -380,7 +380,7 @@ class _StoryCard extends StatelessWidget {
                   style: const TextStyle(
                     fontFamily: AppTheme.sans,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.olive,
+                    color: AppColors.verseRef,
                   ),
                 ),
               ],

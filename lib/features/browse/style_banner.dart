@@ -396,7 +396,7 @@ class _TypePoster extends StatelessWidget {
         : devo.title;
     final rest = words.length > 4 ? words.sublist(4).join(' ') : '';
     return DecoratedBox(
-      decoration: const BoxDecoration(color: Color(0xFFF2C94C)),
+      decoration: const BoxDecoration(color: AppColors.posterGold),
       child: Stack(
         children: [
           const Positioned(right: -20, top: -30, child: _Sunburst()),
@@ -410,7 +410,7 @@ class _TypePoster extends StatelessWidget {
                   total: total,
                   tag: tag,
                   onDark: false,
-                  ink: const Color(0xFF2A2418),
+                  ink: AppColors.posterInk,
                 ),
                 Expanded(
                   child: _ScaleDown(
@@ -424,7 +424,7 @@ class _TypePoster extends StatelessWidget {
                           fontStyle: FontStyle.italic,
                           fontSize: 18,
                           height: 1,
-                          color: Color(0xFF2A2418),
+                          color: AppColors.posterInk,
                         ),
                       ),
                       Text(
@@ -436,7 +436,7 @@ class _TypePoster extends StatelessWidget {
                           fontSize: 34,
                           height: 0.9,
                           letterSpacing: 0.4,
-                          color: Color(0xFFB42318),
+                          color: AppColors.posterRed,
                         ),
                       ),
                       if (rest.isNotEmpty)
@@ -448,7 +448,7 @@ class _TypePoster extends StatelessWidget {
                             fontFamily: 'Caveat',
                             fontSize: 22,
                             height: 1,
-                            color: Color(0xFF2A2418),
+                            color: AppColors.posterInk,
                           ),
                         ),
                       _SummaryPlate(
@@ -584,7 +584,7 @@ class _SplitImage extends StatelessWidget {
                     total: total,
                     tag: tag,
                     onDark: false,
-                    ink: const Color(0xFF2A2420),
+                    ink: AppColors.body,
                   ),
                   Expanded(
                     child: _ScaleDown(
@@ -597,7 +597,7 @@ class _SplitImage extends StatelessWidget {
                             fontFamily: 'DM Serif Display',
                             fontSize: 24,
                             height: 1.05,
-                            color: Color(0xFF2A2420),
+                            color: AppColors.body,
                           ),
                         ),
                         _SummaryPlate(
@@ -649,7 +649,7 @@ class _HandLettered extends StatelessWidget {
               total: total,
               tag: tag,
               onDark: false,
-              ink: const Color(0xFF3A2A1C),
+              ink: AppColors.kraftInk,
             ),
             Expanded(
               child: _ScaleDown(
@@ -663,7 +663,7 @@ class _HandLettered extends StatelessWidget {
                       fontSize: 34,
                       height: 1,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFF8F3EA),
+                      color: AppColors.kraftInk,
                     ),
                   ),
                   _SummaryPlate(
@@ -674,7 +674,7 @@ class _HandLettered extends StatelessWidget {
                       fontFamily: 'Caveat',
                       fontSize: 20,
                       height: 1.15,
-                      color: Color(0xFF3A2A1C),
+                      color: AppColors.kraftInk,
                     ),
                   ),
                 ],
@@ -708,7 +708,7 @@ class _Minimal extends StatelessWidget {
               total: total,
               tag: tag,
               onDark: false,
-              ink: const Color(0xFF6E645C),
+              ink: AppColors.meta,
               accent: const Color(0xFF8C6239),
             ),
             const SizedBox(height: 8),
@@ -725,7 +725,7 @@ class _Minimal extends StatelessWidget {
                       fontSize: 30,
                       height: 1.05,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2A2420),
+                      color: AppColors.body,
                     ),
                   ),
                   _SummaryPlate(
@@ -735,7 +735,7 @@ class _Minimal extends StatelessWidget {
                       fontSize: 16,
                       height: 1.3,
                       fontStyle: FontStyle.italic,
-                      color: Color(0xFF6E645C),
+                      color: AppColors.summary,
                     ),
                   ),
                 ],
@@ -947,7 +947,7 @@ class _TopRow extends StatelessWidget {
               fontSize: 10,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.4,
-              color: onDark ? Colors.white : const Color(0xFF2A2420),
+              color: onDark ? Colors.white : AppColors.body,
             ),
           ),
         ),
@@ -965,8 +965,7 @@ class _TopRow extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
                 color:
-                    accent ??
-                    (onDark ? Colors.white : ink ?? const Color(0xFF2A2420)),
+                    accent ?? (onDark ? Colors.white : ink ?? AppColors.body),
               ),
             ),
           ),

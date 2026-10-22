@@ -207,7 +207,7 @@ class _ShareCard extends StatelessWidget {
                       fontFamily: AppTheme.sans,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
-                      color: AppColors.olive,
+                      color: AppColors.verseRef,
                     ),
                   ),
                 ],

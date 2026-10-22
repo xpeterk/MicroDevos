@@ -459,7 +459,9 @@ class _FeedPostState extends ConsumerState<FeedPost> {
                 },
                 icon: Icon(
                   Icons.sticky_note_2_outlined,
-                  color: notes.isEmpty ? scheme.onSurface : AppColors.line,
+                  color: notes.isEmpty
+                      ? scheme.onSurface
+                      : AppColors.notedMark(Theme.of(context).brightness),
                 ),
               ),
               const Spacer(),
@@ -473,7 +475,7 @@ class _FeedPostState extends ConsumerState<FeedPost> {
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.4,
-                    color: scheme.onSurfaceVariant,
+                    color: AppColors.readingRef(Theme.of(context).brightness),
                   ),
                 ),
               ),
@@ -536,13 +538,13 @@ class _FeedPostState extends ConsumerState<FeedPost> {
                         height: 36,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8E7A2),
+                          color: AppColors.noteFill,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Icon(
                           Icons.sticky_note_2,
                           size: 18,
-                          color: Color(0xFF8A6A20),
+                          color: AppColors.noteInk,
                         ),
                       ),
                     ),
