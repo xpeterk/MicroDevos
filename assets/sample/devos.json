@@ -516,7 +516,9 @@
         "verse_ref": "Hebrews 4:16",
         "verse_text": "Let us therefore come boldly unto the throne of grace, that we may obtain mercy, and find grace to help in time of need.",
         "body": "{\"v\":1,\"blocks\":[{\"type\":\"paragraph\",\"runs\":[{\"text\":\"Mercy meets the person who comes before they feel ready.\"}]}]}",
-        "tags": ["prayer", "trust"]
+        "tags": ["prayer", "trust"],
+        "image_url": "assets/sample/section_banner.jpg",
+        "image_alt": "Warm light along a quiet street at dusk"
       },
       {
         "id": "fri-8-s2",

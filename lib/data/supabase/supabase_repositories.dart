@@ -112,18 +112,22 @@ class SupabaseDevoRepository implements DevoRepository {
     return devosInReadingOrder(await _attachSections(rows.map(devoFromRow)));
   }
 
+  static const _sectionColumns =
+      'id, devo_id, position, title, summary, minutes, verse_ref, verse_text, body, section_tags(tags(slug))';
+
+  static const _sectionColumnsWithImages =
+      'id, devo_id, position, title, summary, minutes, verse_ref, verse_text, body, image_url, image_alt, section_tags(tags(slug))';
+
+  /// False after a read against a database that has not added section images.
+  static var includeSectionImages = true;
+
   /// Missing table (migration not applied yet) leaves devotions without sections.
+  /// Missing image columns retry without them so sections still load.
   Future<List<Devo>> _attachSections(Iterable<Devo> devos) async {
     final list = devos.toList();
     if (list.isEmpty) return list;
     try {
-      final rows = await _client
-          .from('devo_sections')
-          .select(
-            'id, devo_id, position, title, summary, minutes, verse_ref, verse_text, body, section_tags(tags(slug))',
-          )
-          .inFilter('devo_id', list.map((devo) => devo.id).toList())
-          .order('position', ascending: true);
+      final rows = await _selectSections(list);
       final grouped = <String, List<DevoSection>>{};
       for (final row in rows) {
         final devoId = row['devo_id']?.toString() ?? '';
@@ -141,6 +145,34 @@ class SupabaseDevoRepository implements DevoRepository {
       ];
     } catch (_) {
       return list;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _selectSections(List<Devo> list) async {
+    final ids = list.map((devo) => devo.id).toList();
+    final columns = includeSectionImages
+        ? _sectionColumnsWithImages
+        : _sectionColumns;
+    try {
+      final rows = await _client
+          .from('devo_sections')
+          .select(columns)
+          .inFilter('devo_id', ids)
+          .order('position', ascending: true);
+      return rows;
+    } catch (error) {
+      final message = error.toString().toLowerCase();
+      final missingImage =
+          includeSectionImages &&
+          (message.contains('image_url') || message.contains('image_alt'));
+      if (!missingImage) rethrow;
+      includeSectionImages = false;
+      final rows = await _client
+          .from('devo_sections')
+          .select(_sectionColumns)
+          .inFilter('devo_id', ids)
+          .order('position', ascending: true);
+      return rows;
     }
   }
 }

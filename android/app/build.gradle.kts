@@ -30,11 +30,34 @@ android {
         versionName = flutter.versionName
     }
 
+    val releaseStoreFile = System.getenv("RELEASE_STORE_FILE")
+    val releaseStorePassword = System.getenv("RELEASE_STORE_PASSWORD")
+    val releaseKeyAlias = System.getenv("RELEASE_KEY_ALIAS")
+    val releaseKeyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+
+    if (!releaseStoreFile.isNullOrBlank()) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Sign with RELEASE_STORE_FILE so a later install updates the
+            // cf71521 build in place. That keystore is not in git. Without
+            // the env vars, release falls back to the machine debug key and
+            // will not update an install signed with the stored keystore.
+            val storePath = System.getenv("RELEASE_STORE_FILE")
+            signingConfig = if (!storePath.isNullOrBlank()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             // R8 is off. There are no keep rules for the notification plugin
             // or Supabase, and shrinking is not required to draw the UI.
             isMinifyEnabled = false

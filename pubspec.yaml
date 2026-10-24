@@ -71,6 +71,7 @@ flutter:
     - assets/sample/devos.json
     - assets/sample/tags.json
     - assets/bible/kjv.json
+    - assets/sample/section_banner.jpg
 
   fonts:
     - family: Source Serif 4

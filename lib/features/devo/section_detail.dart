@@ -177,7 +177,6 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
                 child: _SectionBlock(
                   devo: devo,
                   section: sections[index],
-                  count: sections.length,
                   expanded: _expanded.contains(sections[index].position),
                   liked: liked.any(
                     (item) => item.sectionId == sections[index].id,
@@ -341,7 +340,6 @@ class _SectionBlock extends ConsumerWidget {
   const _SectionBlock({
     required this.devo,
     required this.section,
-    required this.count,
     required this.expanded,
     required this.liked,
     required this.noted,
@@ -350,7 +348,6 @@ class _SectionBlock extends ConsumerWidget {
 
   final Devo devo;
   final DevoSection section;
-  final int count;
   final bool expanded;
   final bool liked;
   final bool noted;
@@ -364,6 +361,7 @@ class _SectionBlock extends ConsumerWidget {
         'Part ${section.position} · ${section.title} — ${devo.title}';
     final summary = section.summary.trim();
     final refText = section.verseRef.trim();
+    final imageUrl = section.imageUrl?.trim() ?? '';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Material(
@@ -374,13 +372,19 @@ class _SectionBlock extends ConsumerWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (expanded && imageUrl.isNotEmpty)
+              _SectionStrip(
+                id: section.id,
+                url: imageUrl,
+                alt: section.imageAlt?.trim() ?? '',
+              ),
             InkWell(
               key: Key('section-bullet-${section.id}'),
               onTap: onToggle,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+                padding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -388,40 +392,15 @@ class _SectionBlock extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  plainSectionTitle(section.title),
-                                  style: TextStyle(
-                                    fontFamily: AppTheme.sans,
-                                    fontSize: 16,
-                                    height: 1.25,
-                                    fontWeight: FontWeight.w700,
-                                    color: scheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  '${section.minutes} min',
-                                  style: TextStyle(
-                                    fontFamily: AppTheme.sans,
-                                    fontSize: 12,
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                              Icon(
-                                expanded
-                                    ? Icons.expand_less
-                                    : Icons.expand_more,
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ],
+                          Text(
+                            plainSectionTitle(section.title),
+                            style: TextStyle(
+                              fontFamily: AppTheme.serif,
+                              fontSize: 20,
+                              height: 1.2,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurface,
+                            ),
                           ),
                           if (summary.isNotEmpty) ...[
                             const SizedBox(height: 4),
@@ -435,46 +414,30 @@ class _SectionBlock extends ConsumerWidget {
                               ),
                             ),
                           ],
-                          if (refText.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              refText,
-                              key: Key('section-ref-${section.id}'),
-                              style: TextStyle(
-                                fontFamily: AppTheme.sans,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.readingRef(brightness),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
+                    ),
+                    Icon(
+                      expanded ? Icons.expand_less : Icons.expand_more,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ],
                 ),
               ),
             ),
             if (expanded) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-                child: StyleBanner(
-                  devo: devo,
-                  total: count,
-                  hero: false,
-                  bannerKey: 'section-banner-${section.id}',
-                  pillLabel: '',
-                  titleOverride: plainSectionTitle(section.title),
-                  summaryOverride: section.summary,
-                  tagLabel: section.tags.isEmpty ? null : section.tags.first,
-                ),
-              ),
-              if (section.verseText.trim().isNotEmpty || refText.isNotEmpty)
+              if (refText.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                  child: VerseCard(
-                    text: section.verseText,
-                    reference: section.verseRef,
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
+                  child: Text(
+                    refText,
+                    key: Key('section-ref-${section.id}'),
+                    style: TextStyle(
+                      fontFamily: AppTheme.sans,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.readingRef(brightness),
+                    ),
                   ),
                 ),
               Padding(
@@ -543,6 +506,58 @@ class _SectionBlock extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// Half-height section banner, about 1200×315, cover-cropped to the card width.
+const sectionBannerAspect = 1200 / 315;
+
+class _SectionStrip extends StatefulWidget {
+  const _SectionStrip({required this.id, required this.url, required this.alt});
+
+  final String id;
+  final String url;
+  final String alt;
+
+  @override
+  State<_SectionStrip> createState() => _SectionStripState();
+}
+
+class _SectionStripState extends State<_SectionStrip> {
+  var _failed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_failed) return const SizedBox.shrink();
+    final label = widget.alt.isEmpty ? null : widget.alt;
+    final asset = widget.url.startsWith('assets/');
+    final image = asset
+        ? Image.asset(
+            widget.url,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            semanticLabel: label,
+            errorBuilder: _hide,
+          )
+        : Image.network(
+            widget.url,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            semanticLabel: label,
+            errorBuilder: _hide,
+          );
+    return AspectRatio(
+      key: Key('section-strip-${widget.id}'),
+      aspectRatio: sectionBannerAspect,
+      child: image,
+    );
+  }
+
+  Widget _hide(BuildContext context, Object error, StackTrace? stack) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_failed) setState(() => _failed = true);
+    });
+    return const SizedBox.shrink();
   }
 }
 

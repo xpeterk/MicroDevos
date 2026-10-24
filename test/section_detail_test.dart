@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:micro_devos/core/startup.dart';
 import 'package:micro_devos/domain/models/devo.dart';
+import 'package:micro_devos/domain/models/devo_section.dart';
 import 'package:micro_devos/features/devo/section_detail.dart';
 import 'package:micro_devos/features/today/today_screen.dart';
 
@@ -30,6 +31,21 @@ void main() {
       'Come Before You Feel Worthy',
     );
     expect(plainSectionTitle('Problem'), 'Problem');
+  });
+
+  test('a section image is optional', () {
+    final withImage = DevoSection.fromJson({
+      'id': 's1',
+      'title': 'Come Before You Feel Worthy',
+      'image_url': 'assets/sample/section_banner.jpg',
+      'image_alt': 'Warm light along a quiet street at dusk',
+    });
+    expect(withImage.imageUrl, 'assets/sample/section_banner.jpg');
+    expect(withImage.imageAlt, 'Warm light along a quiet street at dusk');
+    final plain = DevoSection.fromJson({'id': 's2', 'title': 'Ask'});
+    expect(plain.imageUrl, isNull);
+    expect(plain.imageAlt, isNull);
+    expect(plain.copyWith(tags: const ['hope']).imageUrl, isNull);
   });
 
   test('the prayer line starts with the emoji and drops Today', () {
@@ -125,8 +141,17 @@ void main() {
     expect(prayer.data, startsWith('🙏'));
     expect(prayer.data, isNot(contains('Today:')));
     expect(find.textContaining('Today:'), findsNothing);
-    expect(find.text('Hebrews 4:16'), findsWidgets);
-    expect(find.text('James 1:5'), findsOneWidget);
+    expect(find.text('Hebrews 4:16'), findsNothing);
+    expect(find.text('James 1:5'), findsNothing);
+    expect(find.byKey(const Key('section-strip-fri-8-s1')), findsNothing);
+    expect(
+      find.byKey(const Key('section-strip-fri-8-s2'), skipOffstage: false),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('section-strip-fri-8-s3'), skipOffstage: false),
+      findsNothing,
+    );
     expect(
       find.byKey(const Key('flow-connector'), skipOffstage: false),
       findsNWidgets(2),
@@ -147,13 +172,24 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('PART'), findsNothing);
+    expect(find.byKey(const Key('section-strip-fri-8-s1')), findsOneWidget);
+    expect(find.byKey(const Key('section-ref-fri-8-s1')), findsOneWidget);
+    expect(find.text('Hebrews 4:16'), findsOneWidget);
+    expect(
+      find.byKey(const Key('section-strip-fri-8-s2'), skipOffstage: false),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('section-strip-fri-8-s3'), skipOffstage: false),
+      findsNothing,
+    );
     expect(
       find.textContaining(
         'Mercy meets the person who comes before they feel ready.',
       ),
       findsOneWidget,
     );
-    expect(find.textContaining('come boldly'), findsWidgets);
+    expect(find.textContaining('come boldly'), findsNothing);
     expect(find.byKey(const Key('section-heart-fri-8-s1')), findsOneWidget);
     expect(find.byKey(const Key('section-note-fri-8-s1')), findsOneWidget);
     expect(find.textContaining('Next in the flow'), findsNothing);
@@ -272,6 +308,10 @@ void main() {
     expect(find.byKey(const Key('todays-lesson')), findsNothing);
     expect(find.textContaining('Next in the flow'), findsNothing);
     expect(find.byKey(const Key('devo-prayer')), findsNothing);
+    expect(
+      find.byKey(const Key('section-strip-fri-7-s1'), skipOffstage: false),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
   });
 }

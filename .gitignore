@@ -51,5 +51,7 @@ app.*.map.json
 .env
 **/.env
 **/android/local.properties
+*.keystore
+*.jks
 tools/notion-import/node_modules/
 tools/notion-import/out/

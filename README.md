@@ -124,11 +124,17 @@ flutter run -d android
 flutter build apk --debug
 ```
 
-The debug APK is `build/app/outputs/flutter-apk/app-debug.apk`. A smaller installable build, signed with the debug key until a release keystore exists:
+The debug APK is `build/app/outputs/flutter-apk/app-debug.apk`. A release APK:
 
 ```bash
+export RELEASE_STORE_FILE=/path/to/md-release.keystore
+export RELEASE_STORE_PASSWORD=...
+export RELEASE_KEY_ALIAS=androiddebugkey
+export RELEASE_KEY_PASSWORD=...
 flutter build apk --release
 ```
+
+`RELEASE_STORE_FILE` is the keystore that signed the cf71521 release (`md_live_cf71521.apk`). That file is kept outside the repo (Agent Store name `md-release.keystore`). Alias and passwords stay in the environment, not in git. A release built without those variables is signed with the machine debug key and will not update an install of the cf71521 APK in place.
 
 That file is `build/app/outputs/flutter-apk/app-release.apk`.
 
@@ -179,6 +185,7 @@ Hosted Supabase: run the migrations in order in the SQL editor, or `supabase db 
 5. `supabase/migrations/20261021000005_devo_sections.sql` — adds `devo_sections`, `section_tags`, and nullable `favorites.section_id` / `notes.section_id`. It also replaces `favorites_user_devo_uidx` with two partial unique indexes so one devotion can have a whole-devo favorite and section favorites. That index change is not a pure add, so this file was not applied to the hosted database with the app change. Apply it yourself in the SQL editor or with `supabase db push` when you are ready; until then the app keeps whole-devo favorites and notes on the old columns and keeps section favorites and section notes on the phone.
 6. `supabase/migrations/20261022000006_tag_hierarchy.sql` — adds nullable `tags.parent_slug` and `tags.is_filter` (default false), inserts the four filter topics Gospel & Faith, Love & Kindness, Church & Community, and Grace & Holiness, and sets `is_filter` on those four plus the original 16. The 54 section tags point at a parent. The filter sheet lists only `is_filter` tags, and choosing one also matches a child tag on a devotion or a section. This file was not applied to the hosted database with the app change.
 7. `supabase/migrations/20261023000007_devo_teaser_prayer.sql` — adds `devos.teaser` and `devos.prayer` (`text not null default ''`). The teaser is the summary under the title and is not the banner sentence. The prayer is the line at the end of a devotion, stored without a Today label. This file was not applied to the hosted database. Do not redeploy `ingest-devos` or run the importer against that database until the columns exist; the app still reads a database that lacks them.
+8. `supabase/migrations/20261024000008_section_images.sql` — adds nullable `devo_sections.image_url` and `devo_sections.image_alt`. A null `image_url` means the expanded section card shows no banner strip. This file was not applied to the hosted database. The app still loads sections when these columns are missing.
 
 Plain Postgres 16 with pgvector, from a new database:
 
@@ -300,6 +307,10 @@ npm run import -- --rss
 | `ESV_API_KEY` | App (`--dart-define`), Crossway ESV |
 | `API_BIBLE_KEY` | App (`--dart-define`) |
 | `API_BIBLE_ID_NIV` `API_BIBLE_ID_NLT` `API_BIBLE_ID_NKJV` `API_BIBLE_ID_CSB` `API_BIBLE_ID_NASB` | App (`--dart-define`) |
+| `RELEASE_STORE_FILE` | Android release signing. Path to the keystore that signed cf71521 (`md-release.keystore`). Not committed. |
+| `RELEASE_STORE_PASSWORD` | Password for `RELEASE_STORE_FILE`. Not committed. |
+| `RELEASE_KEY_ALIAS` | Alias inside that keystore (`androiddebugkey` for the cf71521 key). |
+| `RELEASE_KEY_PASSWORD` | Password for `RELEASE_KEY_ALIAS`. Not committed. |
 
 Copy `.env.example` when you want a local checklist. `.env` is gitignored. There is no embedding or model API key. The embedding provider stays disabled, and Personalize uses the fake provider.
 

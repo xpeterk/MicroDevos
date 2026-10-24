@@ -12,6 +12,8 @@ class DevoSection {
     required this.verseText,
     required this.body,
     this.tags = const [],
+    this.imageUrl,
+    this.imageAlt,
   });
 
   final String id;
@@ -24,6 +26,12 @@ class DevoSection {
   final String verseText;
   final String body;
   final List<String> tags;
+
+  /// Half-height banner shown only while this section is expanded. Null means no strip.
+  final String? imageUrl;
+
+  /// Alt text for [imageUrl].
+  final String? imageAlt;
 
   factory DevoSection.fromJson(
     Map<String, dynamic> json, {
@@ -41,6 +49,8 @@ class DevoSection {
       verseText: json['verse_text'] as String? ?? '',
       body: json['body'] as String? ?? '',
       tags: tags is List ? tags.whereType<String>().toList() : const <String>[],
+      imageUrl: json['image_url'] as String?,
+      imageAlt: json['image_alt'] as String?,
     );
   }
 
@@ -56,6 +66,8 @@ class DevoSection {
       verseText: verseText,
       body: body,
       tags: tags ?? this.tags,
+      imageUrl: imageUrl,
+      imageAlt: imageAlt,
     );
   }
 
@@ -70,6 +82,8 @@ class DevoSection {
     'verse_text': verseText,
     'body': body,
     'tags': tags,
+    'image_url': imageUrl,
+    'image_alt': imageAlt,
   };
 }
 
