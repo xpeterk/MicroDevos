@@ -117,6 +117,8 @@ Devo bannerDisplayDevo(Devo devo, {String? title, String? summary}) {
     notionPageId: devo.notionPageId,
     imageUrl: devo.imageUrl,
     imageAlt: devo.imageAlt,
+    teaser: devo.teaser,
+    prayer: devo.prayer,
   );
 }
 
@@ -934,23 +936,24 @@ class _TopRow extends StatelessWidget {
         'DEVO ${devo.position} OF $count';
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: onDark ? const Color(0xFF241B4B) : const Color(0xFFF4EEE6),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: AppTheme.sans,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-              color: onDark ? Colors.white : AppColors.body,
+        if (label.trim().isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: onDark ? const Color(0xFF241B4B) : const Color(0xFFF4EEE6),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: AppTheme.sans,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+                color: onDark ? Colors.white : AppColors.body,
+              ),
             ),
           ),
-        ),
         const Spacer(),
         if (tag != null && tag!.trim().isNotEmpty)
           Flexible(

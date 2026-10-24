@@ -22,6 +22,8 @@ class Devo {
     this.notionPageId,
     this.imageUrl,
     this.imageAlt,
+    this.teaser = '',
+    this.prayer = '',
   });
 
   final String id;
@@ -50,6 +52,12 @@ class Devo {
   /// Alt text for [imageUrl]. Null when no banner was matched.
   final String? imageAlt;
 
+  /// Summary under the title. Empty when the card has none.
+  final String teaser;
+
+  /// Prayer sentence, without a Today label. Empty when the card has none.
+  final String prayer;
+
   String get dateKey => dateKeyOf(editionDate);
 
   Devo copyWith({List<DevoSection>? sections}) {
@@ -73,6 +81,8 @@ class Devo {
       notionPageId: notionPageId,
       imageUrl: imageUrl,
       imageAlt: imageAlt,
+      teaser: teaser,
+      prayer: prayer,
     );
   }
 
@@ -115,6 +125,8 @@ class Devo {
       notionPageId: json['notion_page_id'] as String?,
       imageUrl: json['image_url'] as String?,
       imageAlt: json['image_alt'] as String?,
+      teaser: json['teaser'] as String? ?? '',
+      prayer: json['prayer'] as String? ?? '',
       tags: (json['tags'] as List<dynamic>? ?? const [])
           .whereType<String>()
           .toList(),
@@ -148,6 +160,8 @@ class Devo {
     'notion_page_id': notionPageId,
     'image_url': imageUrl,
     'image_alt': imageAlt,
+    'teaser': teaser,
+    'prayer': prayer,
     'tags': tags,
     'sections': sections.map((section) => section.toJson()).toList(),
   };

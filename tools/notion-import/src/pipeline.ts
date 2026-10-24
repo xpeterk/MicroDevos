@@ -135,6 +135,8 @@ export function toUpsertRows(imported: ImportedDevo[]) {
       status: (devo.status ?? "published").toLowerCase(),
       notion_page_id: devo.notion_page_id,
       published_at: new Date().toISOString(),
+      teaser: devo.teaser ?? "",
+      prayer: devo.prayer ?? "",
     };
     if (devo.embedding) row.embedding = devo.embedding;
     return row;

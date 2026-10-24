@@ -28,11 +28,11 @@ async function main() {
       `insert into public.devos (
          title, hook, body_md, takeaway, verse_text, verse_ref, scriptures,
          source_url, edition_date, edition_url, position, stars, status,
-         notion_page_id, published_at
+         notion_page_id, published_at, teaser, prayer
        ) values (
          $1, $2, $3, $4, $5, $6, $7::jsonb,
          $8, $9::date, $10, $11, $12, $13,
-         $14, $15::timestamptz
+         $14, $15::timestamptz, $16, $17
        )
        on conflict (notion_page_id, position) do update set
          title = excluded.title,
@@ -47,7 +47,9 @@ async function main() {
          edition_url = excluded.edition_url,
          stars = excluded.stars,
          status = excluded.status,
-         published_at = excluded.published_at
+         published_at = excluded.published_at,
+         teaser = excluded.teaser,
+         prayer = excluded.prayer
        returning id, notion_page_id, position`,
       [
         row.title,
@@ -65,6 +67,8 @@ async function main() {
         row.status,
         row.notion_page_id,
         row.published_at,
+        row.teaser ?? "",
+        row.prayer ?? "",
       ],
     );
 

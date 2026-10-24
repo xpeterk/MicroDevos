@@ -54,6 +54,9 @@ test("parses the current card shape", () => {
   );
   assert.equal(devo.body_md.includes("###"), false);
   assert.equal(devo.body_md.includes("**"), false);
+  assert.equal(devo.sections?.length ?? 0, 0);
+  assert.equal(devo.teaser, "");
+  assert.equal(devo.prayer, "");
 });
 
 test("parses the older sticky-lesson card", () => {
@@ -63,6 +66,24 @@ test("parses the older sticky-lesson card", () => {
   assert.match(devo.takeaway, /finish the work/);
   assert.equal(devo.scriptures[0].reference, "Nehemiah 6:9");
   assert.equal(devo.body_md.includes("Sticky lesson"), false);
+});
+
+test("parses a v6 card into three sections, a teaser, and a prayer", () => {
+  const [devo] = parseDevoMarkdown(fixture("v6.md"));
+  assert.equal(devo.hook, "HEART: A short glance line.");
+  assert.equal(devo.takeaway, "The banner sentence stands on its own.");
+  assert.equal(devo.teaser, "The teaser tells the story without repeating that sentence.");
+  assert.equal(devo.prayer, "Offer one real help to a friend who has not asked.");
+  assert.deepEqual(
+    (devo.sections ?? []).map((section) => section.title),
+    ["The Weight Nobody Named", "He Stepped Forward", "The Load Was Shared"],
+  );
+  assert.equal(devo.sections?.[0].verse_ref, "Gal 6:2");
+  const stored = [devo.body_md, ...(devo.sections ?? []).map((section) => section.body)].join("\n");
+  assert.equal(stored.includes("closing line"), false);
+  assert.equal(stored.includes("Share card"), false);
+  assert.equal(stored.includes("VERSE"), false);
+  assert.equal(stored.includes("Today"), false);
 });
 
 test("skips ideas, prompts, and cards without an edition", () => {

@@ -16,6 +16,8 @@ type IngestDevo = {
   status?: string;
   notion_page_id?: string | null;
   tags?: string[];
+  teaser?: string;
+  prayer?: string;
 };
 
 type IngestBody = {
@@ -119,6 +121,8 @@ Deno.serve(async (req) => {
     status: devo.status ?? "published",
     notion_page_id: devo.notion_page_id ?? null,
     published_at: new Date().toISOString(),
+    teaser: (devo.teaser ?? "").trim(),
+    prayer: (devo.prayer ?? "").trim(),
   }));
 
   const { data, error } = await supabase

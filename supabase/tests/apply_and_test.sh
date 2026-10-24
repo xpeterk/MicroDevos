@@ -24,6 +24,7 @@ sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/migrati
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/migrations/20261020000004_image_alt.sql"
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/migrations/20261021000005_devo_sections.sql"
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/migrations/20261022000006_tag_hierarchy.sql"
+sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/migrations/20261023000007_devo_teaser_prayer.sql"
 sudo -u postgres psql -v ON_ERROR_STOP=1 -d "${DB}" -f "${ROOT}/supabase/tests/rls_test.sql"
 echo "Migrations applied from a clean database and RLS checks passed (${DB})."
 

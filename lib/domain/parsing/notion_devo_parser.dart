@@ -49,6 +49,8 @@ class ParsedDevo {
     this.status,
     this.notionPageId,
     this.sections = const [],
+    this.teaser = '',
+    this.prayer = '',
   });
 
   final String title;
@@ -66,6 +68,8 @@ class ParsedDevo {
   final String? status;
   final String? notionPageId;
   final List<ParsedAppSection> sections;
+  final String teaser;
+  final String prayer;
 
   Map<String, dynamic> toJson() => {
     'title': title,
@@ -82,6 +86,8 @@ class ParsedDevo {
     'stars': stars,
     'status': status,
     'notion_page_id': notionPageId,
+    'teaser': teaser,
+    'prayer': prayer,
   };
 }
 
@@ -186,6 +192,8 @@ class NotionDevoParser {
           status: card.status,
           notionPageId: card.notionPageId,
           sections: parsed.sections,
+          teaser: parsed.teaser,
+          prayer: parsed.prayer,
         ),
       );
     }
@@ -233,8 +241,20 @@ class NotionDevoParser {
   }
 
   static _Section _parseSection(String section) {
-    final split = splitAppSections(section);
-    section = split.prose;
+    final prayer = _prayerFrom(section);
+    final appSplit = splitAppSections(section);
+    final inline = appSplit.sections.isEmpty
+        ? splitInlineSections(appSplit.prose)
+        : const AppSectionSplit(prose: '', sections: []);
+    final sections = appSplit.sections.isNotEmpty
+        ? appSplit.sections
+        : inline.sections;
+    final usingInline = appSplit.sections.isEmpty && inline.sections.isNotEmpty;
+    section = usingInline ? inline.prose : appSplit.prose;
+    final lead = usingInline ? _leadFrom(section) : null;
+    if (lead != null) {
+      section = section.replaceFirst(lead.raw, '').trim();
+    }
     final callout = RegExp(r':::callout\s*\n([\s\S]*?)\n:::')
         .firstMatch(section);
     final verse = callout == null
@@ -272,6 +292,12 @@ class NotionDevoParser {
         continue;
       }
       if (_isSourceOrEdition(trimmed) || trimmed == '---') continue;
+      if (RegExp(r'^Share card\s*:', caseSensitive: false).hasMatch(trimmed)) {
+        continue;
+      }
+      if (trimmed.startsWith('🙏') || _plain(trimmed).startsWith('🙏')) {
+        continue;
+      }
 
       final stickyMatch = RegExp(
         r'^\*\*Sticky lesson:\*\*\s*(.+)$',
@@ -299,7 +325,9 @@ class NotionDevoParser {
     flushQuote();
 
     var takeaway = sticky ?? todayStep ?? '';
-    if (takeaway.isEmpty && lastBold != null) {
+    if (lead != null && lead.banner.isNotEmpty) {
+      takeaway = lead.banner;
+    } else if (takeaway.isEmpty && lastBold != null) {
       takeaway = lastBold;
       final boldLine = '**$lastBold**';
       final index = kept.lastIndexWhere(
@@ -322,14 +350,53 @@ class NotionDevoParser {
       );
     }
 
+    final teaser = lead == null ? '' : _distinctTeaser(lead.teaser, takeaway);
     return _Section(
       body: encodeContent(markdownToBlocks(_collapse(kept.join('\n')))),
       takeaway: takeaway,
       verseText: verse.text,
       verseRef: verse.reference,
       scriptures: scriptures,
-      sections: split.sections,
+      sections: sections,
+      teaser: teaser,
+      prayer: prayer,
     );
+  }
+
+  static String _prayerFrom(String section) {
+    for (final raw in section.split('\n')) {
+      final trimmed = raw.trim();
+      final plain = _plain(trimmed);
+      if (!trimmed.startsWith('🙏') && !plain.startsWith('🙏')) continue;
+      return plain
+          .replaceFirst(RegExp(r'^🙏\s*'), '')
+          .replaceFirst(RegExp(r'^Today:\s*', caseSensitive: false), '')
+          .trim();
+    }
+    return '';
+  }
+
+  static _Lead? _leadFrom(String prose) {
+    for (final raw in prose.split('\n')) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) continue;
+      final bold = RegExp(r'\*\*(.+?)\*\*').firstMatch(trimmed);
+      final italic = RegExp(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)')
+          .firstMatch(trimmed);
+      if (bold == null && italic == null) return null;
+      return _Lead(
+        raw: trimmed,
+        banner: bold?.group(1)?.trim() ?? '',
+        teaser: italic?.group(1)?.trim() ?? '',
+      );
+    }
+    return null;
+  }
+
+  static String _distinctTeaser(String teaser, String banner) {
+    final value = teaser.trim();
+    if (value.isEmpty || value == banner.trim()) return '';
+    return value;
   }
 
   static _Verse _verseFromCallout(String callout) {
@@ -466,6 +533,8 @@ class _Section {
     required this.verseRef,
     required this.scriptures,
     this.sections = const [],
+    this.teaser = '',
+    this.prayer = '',
   });
 
   final String body;
@@ -474,6 +543,16 @@ class _Section {
   final String verseRef;
   final List<ScriptureQuote> scriptures;
   final List<ParsedAppSection> sections;
+  final String teaser;
+  final String prayer;
+}
+
+class _Lead {
+  const _Lead({required this.raw, required this.banner, required this.teaser});
+
+  final String raw;
+  final String banner;
+  final String teaser;
 }
 
 class _Verse {

@@ -427,6 +427,52 @@
     "tags": [
       "peace",
       "anxiety"
+    ],
+    "sections": [
+      {
+        "id": "fri-7-s1",
+        "position": 1,
+        "title": "1 · The Noise in the Room",
+        "summary": "The room got loud, and the old kind of quiet is not what he offered.",
+        "minutes": 2,
+        "verse_ref": "John 14:27",
+        "verse_text": "Peace I leave with you; my peace I give unto you.",
+        "body": "{\"v\":1,\"blocks\":[{\"type\":\"paragraph\",\"runs\":[{\"text\":\"The world offers quiet only after the room agrees.\"}]}]}",
+        "tags": ["peace"]
+      },
+      {
+        "id": "fri-7-s2",
+        "position": 2,
+        "title": "Problem · Name the Peace",
+        "summary": "His peace has a name, and it is not the world's.",
+        "minutes": 1,
+        "verse_ref": "John 14:27",
+        "verse_text": "Not as the world giveth, give I unto you.",
+        "body": "{\"v\":1,\"blocks\":[{\"type\":\"paragraph\",\"runs\":[{\"text\":\"Say his name for the peace, once.\"}]}]}",
+        "tags": ["peace"]
+      },
+      {
+        "id": "fri-7-s3",
+        "position": 3,
+        "title": "Action: Stay on Purpose",
+        "summary": "You return your attention once, on purpose.",
+        "minutes": 1,
+        "verse_ref": "Isaiah 26:3",
+        "verse_text": "Thou wilt keep him in perfect peace, whose mind is stayed on thee.",
+        "body": "{\"v\":1,\"blocks\":[{\"type\":\"paragraph\",\"runs\":[{\"text\":\"Bring your mind back while the room is still loud.\"}]}]}",
+        "tags": ["peace"]
+      },
+      {
+        "id": "fri-7-s4",
+        "position": 4,
+        "title": "Result — Let the Heart Settle",
+        "summary": "A mind stayed on him is kept.",
+        "minutes": 2,
+        "verse_ref": "Isaiah 26:3",
+        "verse_text": "Because he trusteth in thee.",
+        "body": "{\"v\":1,\"blocks\":[{\"type\":\"paragraph\",\"runs\":[{\"text\":\"The heart can settle without the room going quiet.\"}]}]}",
+        "tags": ["anxiety"]
+      }
     ]
   },
   {
@@ -458,6 +504,8 @@
       "prayer",
       "trust"
     ],
+    "teaser": "Mercy meets the person who comes before they feel worthy of the conversation.",
+    "prayer": "Ask for mercy for this hour, and name the one thing you need before you feel ready.",
     "sections": [
       {
         "id": "fri-8-s1",

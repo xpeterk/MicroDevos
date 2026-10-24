@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:micro_devos/core/startup.dart';
+import 'package:micro_devos/domain/models/devo.dart';
+import 'package:micro_devos/features/devo/section_detail.dart';
 import 'package:micro_devos/features/today/today_screen.dart';
 
 import 'support/load_fonts.dart';
@@ -11,6 +13,52 @@ import 'support/sample_app.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('plain titles drop numbers and role labels', () {
+    expect(
+      plainSectionTitle('1 · Come Before You Feel Worthy'),
+      'Come Before You Feel Worthy',
+    );
+    expect(plainSectionTitle('Problem · Name the Peace'), 'Name the Peace');
+    expect(plainSectionTitle('Action: Stay on Purpose'), 'Stay on Purpose');
+    expect(
+      plainSectionTitle('Result — Let the Heart Settle'),
+      'Let the Heart Settle',
+    );
+    expect(
+      plainSectionTitle('Come Before You Feel Worthy'),
+      'Come Before You Feel Worthy',
+    );
+    expect(plainSectionTitle('Problem'), 'Problem');
+  });
+
+  test('the prayer line starts with the emoji and drops Today', () {
+    expect(
+      devoPrayerLine('Today: Ask for mercy for this hour.'),
+      '🙏 Ask for mercy for this hour.',
+    );
+    expect(
+      devoPrayerLine('🙏 **Today:** Offer one real help.'),
+      '🙏 Offer one real help.',
+    );
+    expect(devoPrayerLine(''), isNull);
+    final devo = Devo(
+      id: 'x',
+      title: 'Title',
+      hook: 'Hook sentence.',
+      bodyMd: '',
+      takeaway: 'The banner sentence.',
+      verseText: '',
+      verseRef: 'John 1:1',
+      scriptures: const [],
+      editionDate: DateTime(2026, 10, 16),
+      position: 1,
+      status: 'published',
+      tags: const [],
+      teaser: 'The banner sentence.',
+    );
+    expect(devoTeaser(devo), isNull);
+  });
 
   setUpAll(() async {
     await prepareFramework();
@@ -51,10 +99,32 @@ void main() {
     expect(find.byKey(const Key('section-meta')), findsOneWidget);
     expect(find.text('3 sections · 5 min · Hebrews 4:16'), findsOneWidget);
     expect(find.text('IN THIS DEVO'), findsNothing);
-    expect(find.byKey(const Key('todays-lesson')), findsOneWidget);
-    expect(find.textContaining("TODAY'S LESSON"), findsOneWidget);
-    expect(find.byKey(const Key('lesson-takeaway')), findsOneWidget);
-    expect(find.byKey(const Key('lesson-verse-ref')), findsOneWidget);
+    expect(find.byKey(const Key('todays-lesson')), findsNothing);
+    expect(find.textContaining("TODAY'S LESSON"), findsNothing);
+    expect(find.textContaining('Next in the flow'), findsNothing);
+    expect(find.textContaining('PART'), findsNothing);
+    expect(find.text('1'), findsNothing);
+    expect(find.text('2'), findsNothing);
+    expect(find.text('3'), findsNothing);
+    expect(find.byKey(const Key('devo-teaser')), findsOneWidget);
+    expect(
+      find.text(
+        'Mercy meets the person who comes before they feel worthy of the conversation.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Pray before you feel ready. Ask for mercy and for the wisdom the next hour needs.',
+      ),
+      findsWidgets,
+    );
+    final prayer = tester.widget<Text>(
+      find.byKey(const Key('devo-prayer'), skipOffstage: false),
+    );
+    expect(prayer.data, startsWith('🙏'));
+    expect(prayer.data, isNot(contains('Today:')));
+    expect(find.textContaining('Today:'), findsNothing);
     expect(find.text('Hebrews 4:16'), findsWidgets);
     expect(find.text('James 1:5'), findsOneWidget);
     expect(
@@ -76,9 +146,7 @@ void main() {
     await tester.tap(find.byKey(const Key('section-bullet-fri-8-s1')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.ensureVisible(find.text('PART 1 OF 3', skipOffstage: false));
-    await tester.pump();
-    expect(find.text('PART 1 OF 3'), findsOneWidget);
+    expect(find.textContaining('PART'), findsNothing);
     expect(
       find.textContaining(
         'Mercy meets the person who comes before they feel ready.',
@@ -88,20 +156,13 @@ void main() {
     expect(find.textContaining('come boldly'), findsWidgets);
     expect(find.byKey(const Key('section-heart-fri-8-s1')), findsOneWidget);
     expect(find.byKey(const Key('section-note-fri-8-s1')), findsOneWidget);
-    expect(
-      find.text(
-        'Next in the flow → 2 · Ask for the Next Hour',
-        skipOffstage: false,
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('section-next-fri-8-s3'), skipOffstage: false),
-      findsNothing,
-    );
+    expect(find.textContaining('Next in the flow'), findsNothing);
+    expect(find.textContaining('Share card'), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.ensureVisible(
-      find.byKey(const Key('section-next-fri-8-s1'), skipOffstage: false),
+      find.textContaining(
+        'Mercy meets the person who comes before they feel ready.',
+      ),
     );
     await tester.pump();
     await _capture(tester, 'section-expanded');
@@ -121,7 +182,8 @@ void main() {
     await tester.tap(find.byKey(const Key('jump-summary')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.textContaining("TODAY'S LESSON"), findsOneWidget);
+    expect(find.byKey(const Key('devo-teaser')), findsOneWidget);
+    expect(find.text('Come Before You Feel Worthy'), findsWidgets);
 
     await tester.ensureVisible(find.byKey(const Key('section-heart-fri-8-s1')));
     await tester.pump();
@@ -181,6 +243,36 @@ void main() {
     expect(find.text('A private line for this section.'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _capture(tester, 'saved-sections');
+
+    router.push('/devo/fri-7');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('4 sections · 6 min · John 14:27'), findsOneWidget);
+    expect(
+      find.text('The Noise in the Room', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(find.text('Name the Peace', skipOffstage: false), findsOneWidget);
+    expect(find.text('Stay on Purpose', skipOffstage: false), findsOneWidget);
+    expect(
+      find.text('Let the Heart Settle', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Problem'), findsNothing);
+    expect(find.textContaining('Action'), findsNothing);
+    expect(find.textContaining('Result'), findsNothing);
+    expect(find.text('1'), findsNothing);
+    expect(find.text('2'), findsNothing);
+    expect(find.text('3'), findsNothing);
+    expect(find.text('4'), findsNothing);
+    expect(
+      find.byKey(const Key('flow-connector'), skipOffstage: false),
+      findsNWidgets(3),
+    );
+    expect(find.byKey(const Key('todays-lesson')), findsNothing);
+    expect(find.textContaining('Next in the flow'), findsNothing);
+    expect(find.byKey(const Key('devo-prayer')), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }
 

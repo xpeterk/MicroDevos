@@ -1,5 +1,5 @@
 import { encodeContent } from "./content.js";
-import { splitAppSections } from "./sections.js";
+import { splitAppSections, splitInlineSections } from "./sections.js";
 import type { CardMeta, ImportDecision, ParsedDevo, ScriptureQuote } from "./types.js";
 
 const numberedHeading = /^##\s+(\d+)\s*[·•|\-–—]\s+(.+?)\s*$/gm;
@@ -85,14 +85,25 @@ export function parseDevoMarkdown(markdown: string, meta: CardMeta = {}): Parsed
       stars: meta.stars ?? null,
       status: meta.status ?? null,
       notion_page_id: meta.notionPageId ?? null,
+      teaser: section.teaser,
+      prayer: section.prayer,
     });
   });
   return devos;
 }
 
 function parseSection(section: string) {
-  const split = splitAppSections(section);
-  section = split.prose;
+  const prayer = prayerFrom(section);
+  const appSplit = splitAppSections(section);
+  const inline =
+    appSplit.sections.length === 0
+      ? splitInlineSections(appSplit.prose)
+      : { prose: "", sections: [] };
+  const sections = appSplit.sections.length > 0 ? appSplit.sections : inline.sections;
+  const usingInline = appSplit.sections.length === 0 && inline.sections.length > 0;
+  section = usingInline ? inline.prose : appSplit.prose;
+  const lead = usingInline ? leadFrom(section) : null;
+  if (lead) section = section.replace(lead.raw, "").trim();
   const callout = /:::callout\s*\n([\s\S]*?)\n:::/.exec(section);
   const verse = callout ? verseFromCallout(callout[1]) : { text: "", reference: "" };
   let body = section;
@@ -123,6 +134,8 @@ function parseSection(section: string) {
       continue;
     }
     if (isSourceOrEdition(trimmed) || trimmed === "---") continue;
+    if (/^Share card\s*:/i.test(trimmed)) continue;
+    if (trimmed.startsWith("🙏") || plain(trimmed).startsWith("🙏")) continue;
     const stickyOpen = /^\*\*Sticky lesson:\*\*\s*(.+)$/i.exec(trimmed);
     const stickyWrapped = /^\*\*Sticky lesson:\s*(.+?)\*\*$/i.exec(trimmed);
     if (stickyOpen || stickyWrapped) {
@@ -139,7 +152,9 @@ function parseSection(section: string) {
   flush();
 
   let takeaway = sticky ?? todayStep ?? "";
-  if (!takeaway && lastBold) {
+  if (lead?.banner) {
+    takeaway = lead.banner;
+  } else if (!takeaway && lastBold) {
     takeaway = lastBold;
     const index = findLastIndex(
       kept,
@@ -165,8 +180,42 @@ function parseSection(section: string) {
     verseText: verse.text,
     verseRef: verse.reference,
     scriptures,
-    sections: split.sections,
+    sections,
+    teaser: lead ? distinctTeaser(lead.teaser, takeaway) : "",
+    prayer,
   };
+}
+
+function prayerFrom(section: string): string {
+  for (const raw of section.split("\n")) {
+    const trimmed = raw.trim();
+    const value = plain(trimmed);
+    if (!trimmed.startsWith("🙏") && !value.startsWith("🙏")) continue;
+    return value.replace(/^🙏\s*/, "").replace(/^Today:\s*/i, "").trim();
+  }
+  return "";
+}
+
+function leadFrom(prose: string): { raw: string; banner: string; teaser: string } | null {
+  for (const raw of prose.split("\n")) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const bold = /\*\*(.+?)\*\*/.exec(trimmed);
+    const italic = /(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/.exec(trimmed);
+    if (!bold && !italic) return null;
+    return {
+      raw: trimmed,
+      banner: bold?.[1]?.trim() ?? "",
+      teaser: italic?.[1]?.trim() ?? "",
+    };
+  }
+  return null;
+}
+
+function distinctTeaser(teaser: string, banner: string): string {
+  const value = teaser.trim();
+  if (!value || value === banner.trim()) return "";
+  return value;
 }
 
 function verseFromCallout(callout: string) {

@@ -24,6 +24,8 @@ Devo devoFromRow(Map<String, dynamic> row) {
     notionPageId: row['notion_page_id'] as String?,
     imageUrl: row['image_url'] as String?,
     imageAlt: row['image_alt'] as String?,
+    teaser: row['teaser'] as String? ?? '',
+    prayer: row['prayer'] as String? ?? '',
     tags: tagsFromJoin(row['devo_tags']),
   );
 }

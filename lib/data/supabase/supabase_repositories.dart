@@ -18,14 +18,38 @@ class SupabaseDevoRepository implements DevoRepository {
   static const _columns =
       'id, title, hook, body_md, takeaway, verse_text, verse_ref, scriptures, source_url, edition_date, edition_url, position, stars, status, notion_page_id, image_url, image_alt, devo_tags(tags(slug, label))';
 
+  static const _columnsV6 = '$_columns, teaser, prayer';
+
+  /// False after a read against a database that has not added teaser and prayer.
+  static var includeV6Columns = true;
+
+  String get _activeColumns => includeV6Columns ? _columnsV6 : _columns;
+
+  Future<T> _read<T>(Future<T> Function(String columns) run) async {
+    try {
+      return await run(_activeColumns);
+    } catch (error) {
+      final message = error.toString().toLowerCase();
+      final missingColumn =
+          message.contains('teaser') ||
+          message.contains('prayer') ||
+          message.contains('column');
+      if (!includeV6Columns || !missingColumn) rethrow;
+      includeV6Columns = false;
+      return run(_columns);
+    }
+  }
+
   @override
   Future<Devo?> devoById(String id) async {
-    final row = await _client
-        .from('devos')
-        .select(_columns)
-        .eq('id', id)
-        .inFilter('status', readerDevoStatuses)
-        .maybeSingle();
+    final row = await _read(
+      (columns) => _client
+          .from('devos')
+          .select(columns)
+          .eq('id', id)
+          .inFilter('status', readerDevoStatuses)
+          .maybeSingle(),
+    );
     if (row == null) return null;
     final devo = devoFromRow(row);
     final withSections = await _attachSections([devo]);
@@ -34,12 +58,14 @@ class SupabaseDevoRepository implements DevoRepository {
 
   @override
   Future<List<Devo>> devosForDate(DateTime date) async {
-    final rows = await _client
-        .from('devos')
-        .select(_columns)
-        .eq('edition_date', dateKeyOf(date))
-        .inFilter('status', readerDevoStatuses)
-        .order('position', ascending: true);
+    final rows = await _read(
+      (columns) => _client
+          .from('devos')
+          .select(columns)
+          .eq('edition_date', dateKeyOf(date))
+          .inFilter('status', readerDevoStatuses)
+          .order('position', ascending: true),
+    );
     return devosInReadingOrder(await _attachSections(rows.map(devoFromRow)));
   }
 
@@ -64,23 +90,25 @@ class SupabaseDevoRepository implements DevoRepository {
 
   @override
   Future<List<Devo>> search({String text = '', DateTime? date}) async {
-    var filter = _client
-        .from('devos')
-        .select(_columns)
-        .inFilter('status', readerDevoStatuses);
-    if (date != null) {
-      filter = filter.eq('edition_date', dateKeyOf(date));
-    }
-    final query = text.trim();
-    if (query.isNotEmpty) {
-      final safe = query.replaceAll(',', ' ');
-      filter = filter.or(
-        'title.ilike.%$safe%,hook.ilike.%$safe%,body_md.ilike.%$safe%,takeaway.ilike.%$safe%,verse_ref.ilike.%$safe%',
-      );
-    }
-    final rows = await filter
-        .order('edition_date', ascending: false)
-        .order('position', ascending: true);
+    final rows = await _read((columns) async {
+      var filter = _client
+          .from('devos')
+          .select(columns)
+          .inFilter('status', readerDevoStatuses);
+      if (date != null) {
+        filter = filter.eq('edition_date', dateKeyOf(date));
+      }
+      final query = text.trim();
+      if (query.isNotEmpty) {
+        final safe = query.replaceAll(',', ' ');
+        filter = filter.or(
+          'title.ilike.%$safe%,hook.ilike.%$safe%,body_md.ilike.%$safe%,takeaway.ilike.%$safe%,verse_ref.ilike.%$safe%',
+        );
+      }
+      return filter
+          .order('edition_date', ascending: false)
+          .order('position', ascending: true);
+    });
     return devosInReadingOrder(await _attachSections(rows.map(devoFromRow)));
   }
 

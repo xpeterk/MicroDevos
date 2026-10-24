@@ -27,6 +27,8 @@ export type ParsedDevo = {
   status: string | null;
   notion_page_id: string | null;
   sections?: ParsedAppSection[];
+  teaser: string;
+  prayer: string;
 };
 
 export type ImportDecision =

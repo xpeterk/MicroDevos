@@ -145,6 +145,87 @@ function parseFields(lines: string[]) {
   };
 }
 
+const inlineHeading = /^###\s+\S/m;
+
+/** Turns v6 ### headings into sections. Older ### body headings stay prose. */
+export function splitInlineSections(prose: string): AppSectionSplit {
+  const heading = inlineHeading.exec(prose);
+  if (!heading || heading.index === undefined) {
+    return { prose, sections: [] };
+  }
+  const intro = prose.slice(0, heading.index).trim();
+  if (!introHasV6Lead(intro)) return { prose, sections: [] };
+  const chunks = prose.slice(heading.index).split(/\n(?=###\s+)/);
+  const sections: ParsedAppSection[] = [];
+  chunks.forEach((chunk, index) => {
+    const trimmed = chunk.trim();
+    if (!trimmed.startsWith("###")) return;
+    const lines = trimmed.split("\n");
+    const title = lines[0].replace(/^###\s+/, "").trim();
+    if (!title) return;
+    const bodyLines =
+      index === chunks.length - 1 ? withoutTrailer(lines.slice(1)) : lines.slice(1);
+    const body = bodyLines.join("\n").trim();
+    const verse = verseFromBody(body);
+    sections.push({
+      position: sections.length + 1,
+      title,
+      summary: "",
+      minutes: 1,
+      verse_ref: verse.reference,
+      verse_text: verse.text,
+      body: encodeContent(body),
+      tags: [],
+    });
+  });
+  if (sections.length === 0) return { prose, sections: [] };
+  return { prose: intro, sections };
+}
+
+function introHasV6Lead(intro: string): boolean {
+  const bold = /\*\*(.+?)\*\*/;
+  const italic = /(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/;
+  for (const raw of intro.split("\n")) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    if (bold.test(trimmed) && italic.test(trimmed)) return true;
+  }
+  return false;
+}
+
+function withoutTrailer(lines: string[]): string[] {
+  const kept: string[] = [];
+  for (const line of lines) {
+    if (isTrailer(line)) break;
+    kept.push(line);
+  }
+  return kept;
+}
+
+function isTrailer(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  const plain = trimmed.replaceAll("**", "").trim();
+  if (plain.startsWith("🙏")) return true;
+  if (/^Today\b/i.test(plain)) return true;
+  if (/^Share card\s*:/i.test(plain)) return true;
+  if (/^Source\s*:/i.test(plain)) return true;
+  if (/^Edition\s*:/i.test(plain)) return true;
+  if (trimmed.startsWith(":::")) return true;
+  if (/^\*\*[^*].+\*\*$/.test(trimmed)) return true;
+  return false;
+}
+
+function verseFromBody(body: string): { reference: string; text: string } {
+  const quote = /^>\s*(.+)$/m.exec(body)?.[1]?.trim() ?? "";
+  const match =
+    /^(.*?)(?:\s+[—–-]\s*|\s+)((?:[1-3]\s)?(?:[A-Z][A-Za-z]+\.?\s+){1,3}\d+:\d+(?:-\d+)?)(?:\s+(?:ESV|NIV|KJV|NLT|NKJV|CSB|NASB))?\s*$/.exec(
+      quote,
+    );
+  if (!match) return { reference: "", text: "" };
+  return { reference: match[2].trim(), text: match[1].trim() };
+}
+
 function tagSlugs(raw: string): string[] {
   return raw
     .split(",")

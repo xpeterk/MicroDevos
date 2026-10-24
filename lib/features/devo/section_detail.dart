@@ -153,7 +153,21 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
                 ),
               ),
             ),
-            _LessonCard(key: _listKey, devo: devo, count: sections.length),
+            SizedBox(key: _listKey),
+            if (devoTeaser(devo) != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                child: Text(
+                  devoTeaser(devo)!,
+                  key: const Key('devo-teaser'),
+                  style: TextStyle(
+                    fontFamily: AppTheme.serif,
+                    fontSize: 18,
+                    height: 1.4,
+                    color: AppColors.summaryInk(Theme.of(context).brightness),
+                  ),
+                ),
+              ),
             for (var index = 0; index < sections.length; index++) ...[
               if (index > 0) const _FlowConnector(),
               KeyedSubtree(
@@ -164,9 +178,6 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
                   devo: devo,
                   section: sections[index],
                   count: sections.length,
-                  next: index + 1 < sections.length
-                      ? sections[index + 1]
-                      : null,
                   expanded: _expanded.contains(sections[index].position),
                   liked: liked.any(
                     (item) => item.sectionId == sections[index].id,
@@ -178,6 +189,20 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
                 ),
               ),
             ],
+            if (devoPrayerLine(devo.prayer) != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                child: Text(
+                  devoPrayerLine(devo.prayer)!,
+                  key: const Key('devo-prayer'),
+                  style: TextStyle(
+                    fontFamily: AppTheme.serif,
+                    fontSize: 17,
+                    height: 1.4,
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ),
           ],
         ),
         if (_showSummary && !noting)
@@ -286,77 +311,6 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
-class _LessonCard extends StatelessWidget {
-  const _LessonCard({required this.devo, required this.count, super.key});
-
-  final Devo devo;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final lineWord = count == 1 ? 'LINE' : 'LINES';
-    final takeaway = devo.takeaway.trim();
-    final ref = devo.verseRef.trim();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
-      child: DecoratedBox(
-        key: const Key('todays-lesson'),
-        decoration: BoxDecoration(
-          color: AppColors.lessonNavy,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "TODAY'S LESSON · READ THE $count $lineWord BELOW",
-                style: const TextStyle(
-                  fontFamily: AppTheme.sans,
-                  fontSize: 12,
-                  height: 1.3,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  color: AppColors.lessonGold,
-                ),
-              ),
-              if (takeaway.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(
-                  takeaway,
-                  key: const Key('lesson-takeaway'),
-                  style: const TextStyle(
-                    fontFamily: AppTheme.serif,
-                    fontSize: 22,
-                    height: 1.25,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-              if (ref.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Text(
-                  ref,
-                  key: const Key('lesson-verse-ref'),
-                  style: const TextStyle(
-                    fontFamily: AppTheme.sans,
-                    fontSize: 15,
-                    height: 1.35,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.lessonRef,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _FlowConnector extends StatelessWidget {
   const _FlowConnector();
 
@@ -367,7 +321,7 @@ class _FlowConnector extends StatelessWidget {
       key: const Key('flow-connector'),
       height: 18,
       child: Padding(
-        padding: const EdgeInsets.only(left: 41),
+        padding: const EdgeInsets.only(left: 28),
         child: Align(
           alignment: Alignment.centerLeft,
           child: SizedBox(
@@ -388,7 +342,6 @@ class _SectionBlock extends ConsumerWidget {
     required this.devo,
     required this.section,
     required this.count,
-    required this.next,
     required this.expanded,
     required this.liked,
     required this.noted,
@@ -398,7 +351,6 @@ class _SectionBlock extends ConsumerWidget {
   final Devo devo;
   final DevoSection section;
   final int count;
-  final DevoSection? next;
   final bool expanded;
   final bool liked;
   final bool noted;
@@ -432,25 +384,6 @@ class _SectionBlock extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: AppColors.lessonNavy,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        '${section.position}',
-                        style: const TextStyle(
-                          fontFamily: AppTheme.sans,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,7 +393,7 @@ class _SectionBlock extends ConsumerWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  section.title,
+                                  plainSectionTitle(section.title),
                                   style: TextStyle(
                                     fontFamily: AppTheme.sans,
                                     fontSize: 16,
@@ -530,8 +463,8 @@ class _SectionBlock extends ConsumerWidget {
                   total: count,
                   hero: false,
                   bannerKey: 'section-banner-${section.id}',
-                  pillLabel: 'PART ${section.position} OF $count',
-                  titleOverride: section.title,
+                  pillLabel: '',
+                  titleOverride: plainSectionTitle(section.title),
                   summaryOverride: section.summary,
                   tagLabel: section.tags.isEmpty ? null : section.tags.first,
                 ),
@@ -605,27 +538,43 @@ class _SectionBlock extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                 child: DevoBody(markdown: section.body),
               ),
-              if (next != null) ...[
-                Divider(height: 1, color: scheme.outline),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                  child: Text(
-                    'Next in the flow → ${next!.position} · ${next!.title}',
-                    key: Key('section-next-${section.id}'),
-                    style: TextStyle(
-                      fontFamily: AppTheme.sans,
-                      fontSize: 14,
-                      height: 1.3,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.summaryInk(brightness),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ],
         ),
       ),
     );
   }
+}
+
+/// Drops a leading number or a Problem / Action / Result label from a title.
+String plainSectionTitle(String title) {
+  final original = title.trim();
+  var text = original.replaceFirst(RegExp(r'^\d+\s*[.·•)\-–—]\s*'), '');
+  text = text.replaceFirst(
+    RegExp(r'^(?:problem|action|result)\s*[·:•\-–—]\s*', caseSensitive: false),
+    '',
+  );
+  final plain = text.trim();
+  return plain.isEmpty ? original : plain;
+}
+
+/// Teaser under the title. Hidden when it repeats the banner sentence.
+String? devoTeaser(Devo devo) {
+  final teaser = devo.teaser.trim();
+  if (teaser.isEmpty) return null;
+  final banner = bannerSummary(devo);
+  if (banner.isNotEmpty && teaser == banner) return null;
+  return teaser;
+}
+
+/// Prayer line. A leading Today label is dropped, and the line starts with 🙏.
+String? devoPrayerLine(String prayer) {
+  var text = prayer.trim();
+  if (text.isEmpty) return null;
+  text = text.replaceFirst(RegExp(r'^🙏\s*'), '');
+  text = text.replaceAll('**', '');
+  text = text.replaceFirst(RegExp(r'^Today:\s*', caseSensitive: false), '');
+  text = text.trim();
+  if (text.isEmpty) return null;
+  return '🙏 $text';
 }

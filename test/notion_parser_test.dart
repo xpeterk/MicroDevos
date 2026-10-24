@@ -71,6 +71,9 @@ void main() {
     expect(devo.bodyMd, isNot(contains('Today, write')));
     expect(devo.bodyMd, isNot(contains('VERSE')));
     expect(devo.bodyMd, isNot(contains('substack.com')));
+    expect(devo.sections, isEmpty);
+    expect(devo.teaser, isEmpty);
+    expect(devo.prayer, isEmpty);
   });
 
   test('parses an older card with a sticky lesson and a glance line', () {
@@ -211,6 +214,63 @@ void main() {
       expect(devo.bodyMd, isNot(contains('📖')));
     },
   );
+
+  test(
+    'parses a v6 card into three plain sections, a teaser, and a prayer',
+    () {
+      final devo = NotionDevoParser.parse(load('v6.md')).single;
+      expect(devo.hook, 'HEART: A short glance line.');
+      expect(devo.takeaway, 'The banner sentence stands on its own.');
+      expect(
+        devo.teaser,
+        'The teaser tells the story without repeating that sentence.',
+      );
+      expect(devo.prayer, 'Offer one real help to a friend who has not asked.');
+      expect(devo.sections.map((section) => section.title), [
+        'The Weight Nobody Named',
+        'He Stepped Forward',
+        'The Load Was Shared',
+      ]);
+      expect(devo.sections.first.verseRef, 'Gal 6:2');
+      expect(devo.sections.first.verseText, contains('Carry each other'));
+      final stored = [
+        devo.bodyMd,
+        ...devo.sections.map((section) => section.body),
+      ].join('\n');
+      expect(stored, isNot(contains('closing line')));
+      expect(stored, isNot(contains('Share card')));
+      expect(stored, isNot(contains('VERSE')));
+      expect(stored, isNot(contains('Today')));
+      expect(devo.teaser, isNot(devo.takeaway));
+    },
+  );
+
+  test('a v6 lead with four headings keeps all four sections', () {
+    const card = '''
+## At a Glance
+**HEART: Four stops.**
+Edition: [Micro Devos](https://microdevos.substack.com/p/four)
+
+## 1 · Four Parts
+**The banner is this sentence.** *The teaser is a different sentence.*
+### One
+First.
+### Two
+Second.
+### Three
+Third.
+### Four
+Fourth.
+''';
+    final devo = NotionDevoParser.parse(card).single;
+    expect(devo.sections, hasLength(4));
+    expect(devo.sections.map((section) => section.title), [
+      'One',
+      'Two',
+      'Three',
+      'Four',
+    ]);
+  });
 
   test('counts star labels', () {
     expect(NotionDevoParser.starsFromLabel('★'), 1);
