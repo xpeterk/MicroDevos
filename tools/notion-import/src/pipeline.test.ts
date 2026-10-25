@@ -55,3 +55,20 @@ test("the default providers suggest local tags and leave embeddings empty", asyn
   assert.ok(devo.tags.includes("prayer"));
   assert.equal("embedding" in toUpsertRows(plan.imported)[0], false);
 });
+
+test("v6 dates are guarded against re-import from Notion", async () => {
+  const cards = await loadFixtureCards(fixturePath);
+  const v6Cards = cards.map((c) => ({
+    ...c,
+    properties: {
+      ...c.properties,
+      Date: { date: { start: "2026-10-20" } },
+    },
+  }));
+  const guardedPlan = await planImport(v6Cards);
+  assert.equal(guardedPlan.imported.length, 0);
+  assert.ok(guardedPlan.skipped.some((s) => s.reason.includes("v6 edition date 2026-10-20 guarded")));
+
+  const allowedPlan = await planImport(v6Cards, { allowV6: true });
+  assert.equal(allowedPlan.imported.length, 1);
+});

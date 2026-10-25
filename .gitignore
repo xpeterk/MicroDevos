@@ -55,3 +55,5 @@ app.*.map.json
 *.jks
 tools/notion-import/node_modules/
 tools/notion-import/out/
+tools/v6-load/node_modules/
+content/v6/

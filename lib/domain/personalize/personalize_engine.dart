@@ -204,7 +204,7 @@ class PersonalizeEngine {
     final end = DateTime.utc(clock.year, clock.month, clock.day);
     var used = 0;
     for (final entry in _generationsByDay.entries) {
-      final day = DateTime.parse(entry.key);
+      final day = DateTime.parse('${entry.key}T00:00:00Z');
       if (!day.isBefore(start) && !day.isAfter(end)) used += entry.value;
     }
     return used;

@@ -44,17 +44,32 @@ export type ImportPlan = {
   bannerWarnings: string[];
 };
 
+export const V6_GUARDED_DATES = new Set([
+  "2026-10-19",
+  "2026-10-20",
+  "2026-10-21",
+  "2026-10-22",
+  "2026-10-23",
+]);
+
+export function isV6GuardedDate(date?: string | null): boolean {
+  if (!date) return false;
+  return V6_GUARDED_DATES.has(date) || date >= "2026-10-19";
+}
+
 export async function planImport(
   cards: SourceCard[],
   options: {
     tagging?: TaggingProvider;
     embedding?: EmbeddingProvider;
     catalog?: string[];
+    allowV6?: boolean;
   } = {},
 ): Promise<ImportPlan> {
   const tagging = options.tagging ?? new KeywordTaggingProvider();
   const embedding = options.embedding ?? new DisabledEmbeddingProvider();
   const catalog = options.catalog ?? SEED_TAG_SLUGS;
+  const allowV6 = options.allowV6 ?? process.env.ALLOW_V6_NOTION_IMPORT === "true";
   const imported: ImportedDevo[] = [];
   const skipped: SkippedCard[] = [];
   const bannerWarnings: string[] = [];
@@ -62,6 +77,15 @@ export async function planImport(
   for (const card of cards) {
     const title = readTitle(card.properties);
     const status = readStatus(card.properties);
+    const editionDate = readDate(card.properties);
+    if (editionDate && isV6GuardedDate(editionDate) && !allowV6) {
+      skipped.push({
+        id: card.id,
+        title,
+        reason: `v6 edition date ${editionDate} guarded; Notion cards are stale, loaded via tools/v6-load`,
+      });
+      continue;
+    }
     const normalized = (status ?? "").toLowerCase();
     if (normalized === "ideas" || normalized === "ai-ideas" || title.trim().toLowerCase() === "prompt") {
       skipped.push({
@@ -94,7 +118,6 @@ export async function planImport(
     const notionBannerUrl = readBannerUrl(card.properties);
     const rawBannerAlt = readBannerAlt(card.properties);
     const notionBannerAlt = stripDevotionPrefix(rawBannerAlt);
-    const editionDate = readDate(card.properties);
     for (const devo of devos) {
       const mismatch = bannerPositionWarning({
         headingPosition: devo.position,

@@ -1,0 +1,23 @@
+{
+  "name": "v6-load",
+  "version": "1.0.0",
+  "description": "Idempotent loader for Micro Devos v6 content",
+  "type": "module",
+  "bin": {
+    "v6-load": "./bin/v6-load.js"
+  },
+  "scripts": {
+    "load": "tsx src/index.ts",
+    "test": "tsx --test src/loader.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}

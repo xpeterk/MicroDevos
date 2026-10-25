@@ -288,6 +288,42 @@ npm run import -- --rss
 
 `--rss --dry-run` without a card fixture only reads the feed and writes `out/rss-banners.json`. It does not need a Notion token or Supabase. `--rss-fixture fixtures/substack-feed.xml` uses the saved feed instead of the network. `--rss` without `--dry-run` imports Notion cards first, then sets banner columns. `--images-only` reads Notion for `Banner`, `Banner Alt`, and the heading, then updates only `image_url` and `image_alt` on existing rows. It does not upsert devotion text. `RSS_FEED_URL` overrides the default feed, `https://microdevotionals.substack.com/feed`.
 
+The Notion importer is guarded against re-importing v6 dates (dates >= 2026-10-19) because their Notion cards are stale; use `tools/v6-load` instead.
+
+## v6 Content loader
+
+`tools/v6-load` is an idempotent loader for approved v6 devotional editions (Problem, Action, Result 3-section format).
+
+Charlie's daily delivery files are placed in `content/v6/<YYYY-MM-DD>/` (which is kept out of git):
+- `sections_v6.json` (3 sections per devo: title, summary, body, verse, tags)
+- `images_v6.json` (1200x315 section banners)
+- `titles`, `teasers`, `prayers` (as JSON or line-delimited text files)
+
+For each edition date, the loader:
+1. Upserts each devo's `teaser` and `prayer` (formatted with 🙏 and no "Today:" prefix).
+2. Replaces that devo's sections with exactly 3 v6 sections (including summaries and `image_url`/`image_alt`).
+3. Relinks section tags and devo tags to the 20 approved filter topics in `public.tags`.
+4. Executes the entire operation within a single SQL transaction (`BEGIN; ... COMMIT;`).
+
+### Usage
+
+```bash
+cd tools/v6-load
+npm install
+npm test
+
+# Dry run for a specific date
+npm run load -- --date 2026-10-19 --dry-run
+
+# Load specific date live via Supabase Management API
+export SUPABASE_ACCESS_TOKEN=sbp_...
+npm run load -- --date 2026-10-19
+
+# Verify database state for v6 dates
+npm run load -- --check
+```
+
+
 ## Environment variables
 
 | Name | Used by |
