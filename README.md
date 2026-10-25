@@ -124,17 +124,17 @@ flutter run -d android
 flutter build apk --debug
 ```
 
-The debug APK is `build/app/outputs/flutter-apk/app-debug.apk`. A release APK:
+The debug APK is `build/app/outputs/flutter-apk/app-debug.apk`. A release APK uses a keystore kept outside the repo:
 
 ```bash
-export RELEASE_STORE_FILE=/path/to/md-release.keystore
+export RELEASE_STORE_FILE=/path/to/release.keystore
 export RELEASE_STORE_PASSWORD=...
-export RELEASE_KEY_ALIAS=androiddebugkey
+export RELEASE_KEY_ALIAS=...
 export RELEASE_KEY_PASSWORD=...
 flutter build apk --release
 ```
 
-`RELEASE_STORE_FILE` is the keystore that signed the cf71521 release (`md_live_cf71521.apk`). That file is kept outside the repo (Agent Store name `md-release.keystore`). Alias and passwords stay in the environment, not in git. A release built without those variables is signed with the machine debug key and will not update an install of the cf71521 APK in place.
+Alias and passwords stay in the environment, not in git. A release built without those variables is signed with the machine debug key. To update an existing install in place, point `RELEASE_STORE_FILE` at the same keystore that signed that install.
 
 That file is `build/app/outputs/flutter-apk/app-release.apk`.
 
@@ -307,9 +307,9 @@ npm run import -- --rss
 | `ESV_API_KEY` | App (`--dart-define`), Crossway ESV |
 | `API_BIBLE_KEY` | App (`--dart-define`) |
 | `API_BIBLE_ID_NIV` `API_BIBLE_ID_NLT` `API_BIBLE_ID_NKJV` `API_BIBLE_ID_CSB` `API_BIBLE_ID_NASB` | App (`--dart-define`) |
-| `RELEASE_STORE_FILE` | Android release signing. Path to the keystore that signed cf71521 (`md-release.keystore`). Not committed. |
+| `RELEASE_STORE_FILE` | Android release signing. Path to a keystore kept outside the repo. |
 | `RELEASE_STORE_PASSWORD` | Password for `RELEASE_STORE_FILE`. Not committed. |
-| `RELEASE_KEY_ALIAS` | Alias inside that keystore (`androiddebugkey` for the cf71521 key). |
+| `RELEASE_KEY_ALIAS` | Alias inside that keystore. |
 | `RELEASE_KEY_PASSWORD` | Password for `RELEASE_KEY_ALIAS`. Not committed. |
 
 Copy `.env.example` when you want a local checklist. `.env` is gitignored. There is no embedding or model API key. The embedding provider stays disabled, and Personalize uses the fake provider.
