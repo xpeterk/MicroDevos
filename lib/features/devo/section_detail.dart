@@ -361,6 +361,7 @@ class _SectionBlock extends ConsumerWidget {
         'Part ${section.position} · ${section.title} — ${devo.title}';
     final summary = section.summary.trim();
     final refText = section.verseRef.trim();
+    final verseText = section.verseText.trim();
     final imageUrl = section.imageUrl?.trim() ?? '';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -426,20 +427,6 @@ class _SectionBlock extends ConsumerWidget {
               ),
             ),
             if (expanded) ...[
-              if (refText.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
-                  child: Text(
-                    refText,
-                    key: Key('section-ref-${section.id}'),
-                    style: TextStyle(
-                      fontFamily: AppTheme.sans,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.readingRef(brightness),
-                    ),
-                  ),
-                ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 8, 0),
                 child: Row(
@@ -499,11 +486,86 @@ class _SectionBlock extends ConsumerWidget {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                child: DevoBody(markdown: section.body),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DevoBody(markdown: section.body),
+                    if (verseText.isNotEmpty || refText.isNotEmpty)
+                      _SectionVerseBox(
+                        sectionId: section.id,
+                        text: verseText,
+                        reference: refText,
+                      ),
+                  ],
+                ),
               ),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SectionVerseBox extends StatelessWidget {
+  const _SectionVerseBox({
+    required this.sectionId,
+    required this.text,
+    required this.reference,
+  });
+
+  final String sectionId;
+  final String text;
+  final String reference;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasText = text.isNotEmpty;
+    final hasRef = reference.isNotEmpty;
+    if (!hasText && !hasRef) return const SizedBox.shrink();
+
+    final formattedRef =
+        reference.startsWith('—') || reference.startsWith('\u2014')
+            ? reference
+            : '— $reference';
+
+    return Container(
+      key: Key('section-verse-box-$sectionId'),
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6EFDF),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE8DDC4), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasText)
+            Text(
+              text,
+              style: const TextStyle(
+                fontFamily: AppTheme.serif,
+                fontStyle: FontStyle.italic,
+                fontSize: 16,
+                height: 1.45,
+                color: Color(0xFF2C241E),
+              ),
+            ),
+          if (hasText && hasRef) const SizedBox(height: 10),
+          if (hasRef)
+            Text(
+              formattedRef,
+              key: Key('section-ref-$sectionId'),
+              style: const TextStyle(
+                fontFamily: AppTheme.sans,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF8A6A2F),
+              ),
+            ),
+        ],
       ),
     );
   }

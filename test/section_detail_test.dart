@@ -174,7 +174,7 @@ void main() {
     expect(find.textContaining('PART'), findsNothing);
     expect(find.byKey(const Key('section-strip-fri-8-s1')), findsOneWidget);
     expect(find.byKey(const Key('section-ref-fri-8-s1')), findsOneWidget);
-    expect(find.text('Hebrews 4:16'), findsOneWidget);
+    expect(find.text('— Hebrews 4:16'), findsOneWidget);
     expect(
       find.byKey(const Key('section-strip-fri-8-s2'), skipOffstage: false),
       findsNothing,
@@ -189,7 +189,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.textContaining('come boldly'), findsNothing);
+    expect(find.textContaining('come boldly'), findsOneWidget);
     expect(find.byKey(const Key('section-heart-fri-8-s1')), findsOneWidget);
     expect(find.byKey(const Key('section-note-fri-8-s1')), findsOneWidget);
     expect(find.textContaining('Next in the flow'), findsNothing);
