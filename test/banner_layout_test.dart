@@ -106,8 +106,8 @@ void main() {
   testWidgets('today feed keeps positions 1 then 2', (tester) async {
     await tester.pumpWidget(_feedApp([_devo(position: 1), _devo(position: 2)]));
     await tester.pump();
-    final first = tester.getTopLeft(find.text('DEVO 1 OF 2'));
-    final second = tester.getTopLeft(find.text('DEVO 2 OF 2'));
+    final first = tester.getTopLeft(find.byKey(const Key('post-wide-1')));
+    final second = tester.getTopLeft(find.byKey(const Key('post-wide-2')));
     expect(first.dy, lessThan(second.dy));
   });
 
@@ -127,7 +127,7 @@ void main() {
       expect(find.text('IMAGE PLACEHOLDER'), findsNothing);
       expect(find.text('A Refuge That Does Not Move'), findsOneWidget);
       expect(find.text('3 SEC'), findsNothing);
-      expect(find.textContaining('Sit for one quiet minute.'), findsOneWidget);
+      expect(find.textContaining('Sit for one quiet minute.'), findsNothing);
       expect(find.bySemanticsLabel('A still morning'), findsOneWidget);
 
       final image = tester.widget<Image>(
@@ -253,16 +253,21 @@ void main() {
       );
       expect(find.text('3 SEC'), findsNothing);
       expect(find.textContaining(hidden), findsNothing);
-      expect(find.text(shown), findsOneWidget);
-      final paragraph = tester.renderObject<RenderParagraph>(find.text(shown));
-      expect(paragraph.didExceedMaxLines, isFalse);
-      final banner = tester.getRect(find.byKey(Key('banner-style-$position')));
-      final summary = tester.getRect(find.text(shown));
-      expect(banner.height, closeTo(kStyleBannerHeight, 1));
-      expect(summary.top, greaterThanOrEqualTo(banner.top - 0.5));
-      expect(summary.bottom, lessThanOrEqualTo(banner.bottom + 0.5));
-      expect(summary.left, greaterThanOrEqualTo(banner.left - 0.5));
-      expect(summary.right, lessThanOrEqualTo(banner.right + 0.5));
+      final isCaptionBanner = [3, 4, 6, 7].contains(position);
+      if (isCaptionBanner) {
+        expect(find.text(shown), findsOneWidget);
+        final paragraph = tester.renderObject<RenderParagraph>(find.text(shown));
+        expect(paragraph.didExceedMaxLines, isFalse);
+        final banner = tester.getRect(find.byKey(Key('banner-style-$position')));
+        final summary = tester.getRect(find.text(shown));
+        expect(banner.height, closeTo(kStyleBannerHeight, 1));
+        expect(summary.top, greaterThanOrEqualTo(banner.top - 0.5));
+        expect(summary.bottom, lessThanOrEqualTo(banner.bottom + 0.5));
+        expect(summary.left, greaterThanOrEqualTo(banner.left - 0.5));
+        expect(summary.right, lessThanOrEqualTo(banner.right + 0.5));
+      } else {
+        expect(find.text(shown), findsNothing);
+      }
       expect(tester.takeException(), isNull);
       await _capture(
         tester,

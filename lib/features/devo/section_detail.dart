@@ -366,10 +366,16 @@ class _SectionBlock extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Material(
-        color: scheme.surfaceContainerLowest,
+        color: brightness == Brightness.dark
+            ? const Color(0xFF2C2723)
+            : scheme.surfaceContainerLowest,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: scheme.outline),
+          side: BorderSide(
+            color: brightness == Brightness.dark
+                ? const Color(0xFF423B34)
+                : scheme.outline,
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(

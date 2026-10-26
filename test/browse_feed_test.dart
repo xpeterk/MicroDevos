@@ -42,12 +42,12 @@ void main() {
     expect(find.textContaining('FRI, OCT 16'), findsOneWidget);
     expect(find.text('3 SEC'), findsNothing);
     expect(
-      find.textContaining('Before you react, sit for one quiet minute'),
+      find.textContaining('Pray the heaviest item on your mind'),
       findsWidgets,
     );
     expect(
-      tester.getTopLeft(find.text('DEVO 1 OF 8').first).dy,
-      lessThan(tester.getTopLeft(find.text('DEVO 2 OF 8').first).dy),
+      tester.getTopLeft(find.byKey(const Key('post-fri-1')).first).dy,
+      lessThan(tester.getTopLeft(find.byKey(const Key('post-fri-2')).first).dy),
     );
     for (final label in const [
       'PHOTO + SCRIM',

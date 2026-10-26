@@ -133,7 +133,7 @@ void main() {
       find.text(
         'Pray before you feel ready. Ask for mercy and for the wisdom the next hour needs.',
       ),
-      findsWidgets,
+      findsNothing,
     );
     final prayer = tester.widget<Text>(
       find.byKey(const Key('devo-prayer'), skipOffstage: false),

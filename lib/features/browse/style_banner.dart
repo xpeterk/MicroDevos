@@ -295,17 +295,6 @@ class _PhotoScrim extends StatelessWidget {
                         color: Colors.white,
                       ),
                     ),
-                    _SummaryPlate(
-                      text: bannerSummary(devo),
-                      fill: const Color(0xE614110E),
-                      style: const TextStyle(
-                        fontFamily: AppTheme.sans,
-                        fontSize: 15,
-                        height: 1.3,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -353,17 +342,6 @@ class _Duotone extends StatelessWidget {
                         fontSize: 28,
                         height: 1.05,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    _SummaryPlate(
-                      text: bannerSummary(devo),
-                      fill: const Color(0xE614110E),
-                      style: const TextStyle(
-                        fontFamily: AppTheme.sans,
-                        fontSize: 15,
-                        height: 1.3,
-                        fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),
@@ -602,17 +580,6 @@ class _SplitImage extends StatelessWidget {
                             color: AppColors.body,
                           ),
                         ),
-                        _SummaryPlate(
-                          text: bannerSummary(devo),
-                          fill: const Color(0xFF1E3A5F),
-                          style: const TextStyle(
-                            fontFamily: AppTheme.sans,
-                            fontSize: 14,
-                            height: 1.28,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -785,17 +752,6 @@ class _Collage extends StatelessWidget {
                             color: Color(0xFFF4EEE6),
                           ),
                         ),
-                        _SummaryPlate(
-                          text: bannerSummary(devo),
-                          fill: const Color(0xE614110E),
-                          style: const TextStyle(
-                            fontFamily: AppTheme.sans,
-                            fontSize: 14,
-                            height: 1.28,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -930,13 +886,10 @@ class _TopRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final count = total <= 0 ? devo.position : total;
-    final label =
-        BannerScope.maybeOf(context)?.pillLabel ??
-        'DEVO ${devo.position} OF $count';
+    final label = BannerScope.maybeOf(context)?.pillLabel;
     return Row(
       children: [
-        if (label.trim().isNotEmpty)
+        if (label != null && label.trim().isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
