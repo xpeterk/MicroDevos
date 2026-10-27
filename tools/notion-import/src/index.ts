@@ -12,6 +12,7 @@ import {
   SECTION_UPSERT_ON_CONFLICT,
   buildSectionTagLinks,
   buildSectionUpsertRows,
+  planDevoSectionPrune,
 } from "./sections.js";
 import {
   bannerWritePayload,
@@ -172,9 +173,13 @@ async function upsertSections(
       if (id) tagged.push({ id, tags: section.tags });
     }
     const keep = (devo.sections ?? []).map((section) => section.position);
+    // Notion cards without sections must not wipe sections loaded from v6 content files.
+    if (keep.length === 0) continue;
+    const plan = planDevoSectionPrune(devo.sections);
+    if (!plan.deleteIssued) continue;
     let removal = supabase.from("devo_sections").delete().eq("devo_id", devoId);
     if (keep.length > 0) {
-      removal = removal.not("position", "in", `(${keep.join(",")})`);
+      removal = removal.not("position", "in", plan.notIn);
     }
     const { error: removeError } = await removal;
     if (removeError) throw removeError;
