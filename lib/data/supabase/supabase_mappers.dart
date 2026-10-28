@@ -26,6 +26,10 @@ Devo devoFromRow(Map<String, dynamic> row) {
     imageAlt: row['image_alt'] as String?,
     teaser: row['teaser'] as String? ?? '',
     prayer: row['prayer'] as String? ?? '',
+    oneMinuteText: row['one_minute_text'] as String?,
+    oneMinuteVerseRef: row['one_minute_verse_ref'] as String?,
+    oneMinuteVerseText: row['one_minute_verse_text'] as String?,
+    oneMinuteToday: row['one_minute_today'] as String?,
     tags: tagsFromJoin(row['devo_tags']),
   );
 }

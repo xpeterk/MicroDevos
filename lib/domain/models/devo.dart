@@ -24,6 +24,10 @@ class Devo {
     this.imageAlt,
     this.teaser = '',
     this.prayer = '',
+    this.oneMinuteText,
+    this.oneMinuteVerseRef,
+    this.oneMinuteVerseText,
+    this.oneMinuteToday,
   });
 
   final String id;
@@ -58,9 +62,30 @@ class Devo {
   /// Prayer sentence, without a Today label. Empty when the card has none.
   final String prayer;
 
+  /// Optional ~150-word single paragraph summary of the whole devotion.
+  final String? oneMinuteText;
+
+  /// Optional Bible verse reference for the 1-minute devotion.
+  final String? oneMinuteVerseRef;
+
+  /// Optional Bible verse text for the 1-minute devotion.
+  final String? oneMinuteVerseText;
+
+  /// Optional action/prayer takeaway for the 1-minute devotion ("Pray for...").
+  final String? oneMinuteToday;
+
+  bool get hasOneMinute =>
+      oneMinuteText != null && oneMinuteText!.trim().isNotEmpty;
+
   String get dateKey => dateKeyOf(editionDate);
 
-  Devo copyWith({List<DevoSection>? sections}) {
+  Devo copyWith({
+    List<DevoSection>? sections,
+    String? oneMinuteText,
+    String? oneMinuteVerseRef,
+    String? oneMinuteVerseText,
+    String? oneMinuteToday,
+  }) {
     return Devo(
       id: id,
       title: title,
@@ -83,6 +108,10 @@ class Devo {
       imageAlt: imageAlt,
       teaser: teaser,
       prayer: prayer,
+      oneMinuteText: oneMinuteText ?? this.oneMinuteText,
+      oneMinuteVerseRef: oneMinuteVerseRef ?? this.oneMinuteVerseRef,
+      oneMinuteVerseText: oneMinuteVerseText ?? this.oneMinuteVerseText,
+      oneMinuteToday: oneMinuteToday ?? this.oneMinuteToday,
     );
   }
 
@@ -127,6 +156,10 @@ class Devo {
       imageAlt: json['image_alt'] as String?,
       teaser: json['teaser'] as String? ?? '',
       prayer: json['prayer'] as String? ?? '',
+      oneMinuteText: json['one_minute_text'] as String?,
+      oneMinuteVerseRef: json['one_minute_verse_ref'] as String?,
+      oneMinuteVerseText: json['one_minute_verse_text'] as String?,
+      oneMinuteToday: json['one_minute_today'] as String?,
       tags: (json['tags'] as List<dynamic>? ?? const [])
           .whereType<String>()
           .toList(),
@@ -162,6 +195,10 @@ class Devo {
     'image_alt': imageAlt,
     'teaser': teaser,
     'prayer': prayer,
+    'one_minute_text': oneMinuteText,
+    'one_minute_verse_ref': oneMinuteVerseRef,
+    'one_minute_verse_text': oneMinuteVerseText,
+    'one_minute_today': oneMinuteToday,
     'tags': tags,
     'sections': sections.map((section) => section.toJson()).toList(),
   };

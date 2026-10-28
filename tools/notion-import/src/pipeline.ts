@@ -160,6 +160,7 @@ export function toUpsertRows(imported: ImportedDevo[]) {
       published_at: new Date().toISOString(),
       teaser: devo.teaser ?? "",
       prayer: devo.prayer ?? "",
+      // one_minute_* columns are written by the daily-devo routine; never include them here.
     };
     if (devo.embedding) row.embedding = devo.embedding;
     return row;

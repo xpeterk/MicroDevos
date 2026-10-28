@@ -20,16 +20,33 @@ class SupabaseDevoRepository implements DevoRepository {
 
   static const _columnsV6 = '$_columns, teaser, prayer';
 
+  static const _columnsOneMinute =
+      '$_columnsV6, one_minute_text, one_minute_verse_ref, one_minute_verse_text, one_minute_today';
+
+  /// False after a read against a database that has not added one-minute columns.
+  static var includeOneMinuteColumns = true;
+
   /// False after a read against a database that has not added teaser and prayer.
   static var includeV6Columns = true;
 
-  String get _activeColumns => includeV6Columns ? _columnsV6 : _columns;
+  String get _activeColumns {
+    if (includeOneMinuteColumns) return _columnsOneMinute;
+    if (includeV6Columns) return _columnsV6;
+    return _columns;
+  }
 
   Future<T> _read<T>(Future<T> Function(String columns) run) async {
     try {
       return await run(_activeColumns);
     } catch (error) {
       final message = error.toString().toLowerCase();
+      final missingOneMinute =
+          message.contains('one_minute') ||
+          (includeOneMinuteColumns && message.contains('column'));
+      if (includeOneMinuteColumns && missingOneMinute) {
+        includeOneMinuteColumns = false;
+        return _read(run);
+      }
       final missingColumn =
           message.contains('teaser') ||
           message.contains('prayer') ||

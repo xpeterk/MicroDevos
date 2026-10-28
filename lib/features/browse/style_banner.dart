@@ -119,6 +119,10 @@ Devo bannerDisplayDevo(Devo devo, {String? title, String? summary}) {
     imageAlt: devo.imageAlt,
     teaser: devo.teaser,
     prayer: devo.prayer,
+    oneMinuteText: devo.oneMinuteText,
+    oneMinuteVerseRef: devo.oneMinuteVerseRef,
+    oneMinuteVerseText: devo.oneMinuteVerseText,
+    oneMinuteToday: devo.oneMinuteToday,
   );
 }
 

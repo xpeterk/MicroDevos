@@ -13,6 +13,7 @@ import '../browse/banner.dart';
 import '../browse/browse_state.dart';
 import '../browse/note_pane.dart';
 import '../browse/style_banner.dart';
+import 'one_minute_section.dart';
 import 'section_detail.dart';
 
 /// The newsletter picture is the header inside the full devotion, except on
@@ -33,9 +34,11 @@ class DevoDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final devo = ref.watch(devoByIdProvider(id));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final devoScreenBg = isDark ? const Color(0xFF0A0908) : const Color(0xFFE6DFD0);
     return Scaffold(
       key: const Key('devo-detail'),
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: devoScreenBg,
       body: devo.when(
         loading: () => const LoadingView(),
         error: (error, _) => StatusMessage(
@@ -113,6 +116,7 @@ class _Detail extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: StyleBanner(devo: devo, total: dayCount, hero: true),
               ),
+              OneMinuteSection(devo: devo),
               if (showNewsletter)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),

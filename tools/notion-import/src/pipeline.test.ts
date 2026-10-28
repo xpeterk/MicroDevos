@@ -72,3 +72,14 @@ test("v6 dates are guarded against re-import from Notion", async () => {
   const allowedPlan = await planImport(v6Cards, { allowV6: true });
   assert.equal(allowedPlan.imported.length, 1);
 });
+
+test("toUpsertRows never emits one_minute_* columns (managed by daily-devo routine)", async () => {
+  const cards = await loadFixtureCards(fixturePath);
+  const plan = await planImport(cards);
+  const rows = toUpsertRows(plan.imported);
+  for (const row of rows) {
+    const oneMinuteKeys = Object.keys(row).filter((key) => key.startsWith("one_minute_"));
+    assert.deepEqual(oneMinuteKeys, [], "Expected no one_minute_* columns in Notion upsert row");
+  }
+});
+

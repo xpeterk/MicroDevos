@@ -10,6 +10,7 @@ import '../../shared/widgets/reading_widgets.dart';
 import '../browse/browse_state.dart';
 import '../browse/note_pane.dart';
 import '../browse/style_banner.dart';
+import 'one_minute_section.dart';
 
 /// Summary of a devotion that has sections. Bullets expand in place.
 class SectionDetail extends ConsumerStatefulWidget {
@@ -154,6 +155,7 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
               ),
             ),
             SizedBox(key: _listKey),
+            OneMinuteSection(devo: devo),
             if (devoTeaser(devo) != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
@@ -168,6 +170,7 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
                   ),
                 ),
               ),
+            const SizedBox(height: 8),
             for (var index = 0; index < sections.length; index++) ...[
               if (index > 0) const _FlowConnector(),
               KeyedSubtree(
@@ -315,23 +318,9 @@ class _FlowConnector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return SizedBox(
-      key: const Key('flow-connector'),
-      height: 18,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 28),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: SizedBox(
-            width: 2,
-            height: 18,
-            child: ColoredBox(
-              color: dark ? const Color(0xFF3A342E) : const Color(0xFFD9D0C4),
-            ),
-          ),
-        ),
-      ),
+    return const SizedBox(
+      key: Key('flow-connector'),
+      height: 10,
     );
   }
 }
@@ -357,81 +346,99 @@ class _SectionBlock extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
     final caption =
         'Part ${section.position} · ${section.title} — ${devo.title}';
     final summary = section.summary.trim();
     final refText = section.verseRef.trim();
     final verseText = section.verseText.trim();
     final imageUrl = section.imageUrl?.trim() ?? '';
+
+    final cardBg = isDark ? const Color(0xFF2C2926) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF4A453E) : const Color(0xFFB9AE97);
+    final cardShadow = isDark
+        ? const BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.6),
+            offset: Offset(0, 2),
+            blurRadius: 8,
+          )
+        : const BoxShadow(
+            color: Color.fromRGBO(70, 55, 25, 0.18),
+            offset: Offset(0, 2),
+            blurRadius: 8,
+          );
+    final titleColor = isDark ? const Color(0xFFF6F0E2) : const Color(0xFF1F1B16);
+    final chevronColor = isDark ? const Color(0xFFC4BBA8) : const Color(0xFF6B5F4B);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      child: Material(
-        color: brightness == Brightness.dark
-            ? const Color(0xFF2C2723)
-            : scheme.surfaceContainerLowest,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(
-            color: brightness == Brightness.dark
-                ? const Color(0xFF423B34)
-                : scheme.outline,
-          ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor, width: 1),
+          boxShadow: [cardShadow],
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (expanded && imageUrl.isNotEmpty)
-              _SectionStrip(
-                id: section.id,
-                url: imageUrl,
-                alt: section.imageAlt?.trim() ?? '',
-              ),
-            InkWell(
-              key: Key('section-bullet-${section.id}'),
-              onTap: onToggle,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            plainSectionTitle(section.title),
-                            style: TextStyle(
-                              fontFamily: AppTheme.serif,
-                              fontSize: 20,
-                              height: 1.2,
-                              fontWeight: FontWeight.w700,
-                              color: scheme.onSurface,
-                            ),
-                          ),
-                          if (summary.isNotEmpty) ...[
-                            const SizedBox(height: 4),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (expanded && imageUrl.isNotEmpty)
+                _SectionStrip(
+                  id: section.id,
+                  url: imageUrl,
+                  alt: section.imageAlt?.trim() ?? '',
+                ),
+              InkWell(
+                key: Key('section-bullet-${section.id}'),
+                onTap: onToggle,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              summary,
+                              plainSectionTitle(section.title),
                               style: TextStyle(
                                 fontFamily: AppTheme.sans,
                                 fontSize: 15,
                                 height: 1.35,
-                                color: AppColors.summaryInk(brightness),
+                                fontWeight: FontWeight.w600,
+                                color: titleColor,
                               ),
                             ),
+                            if (summary.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                summary,
+                                style: TextStyle(
+                                  fontFamily: AppTheme.sans,
+                                  fontSize: 15,
+                                  height: 1.35,
+                                  color: AppColors.summaryInk(brightness),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                    Icon(
-                      expanded ? Icons.expand_less : Icons.expand_more,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Icon(
+                        expanded ? Icons.expand_less : Icons.expand_more,
+                        size: 18,
+                        color: chevronColor,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             if (expanded) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 8, 0),
@@ -509,8 +516,9 @@ class _SectionBlock extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _SectionVerseBox extends StatelessWidget {
