@@ -98,6 +98,23 @@ export function buildSectionTagLinks(
   return links;
 }
 
+export type DevoSectionPrunePlan =
+  | { deleteIssued: false }
+  | { deleteIssued: true; keep: number[]; notIn: string };
+
+/**
+ * `deleteIssued: false` means do not delete.
+ * A card with no Notion sections must not wipe sections loaded from v6 content files.
+ * When Notion supplies sections, `notIn` is the PostgREST list of positions to retain.
+ */
+export function planDevoSectionPrune(
+  sections: Array<{ position: number }> | null | undefined,
+): DevoSectionPrunePlan {
+  const keep = (sections ?? []).map((section) => section.position);
+  if (keep.length === 0) return { deleteIssued: false };
+  return { deleteIssued: true, keep, notIn: `(${keep.join(",")})` };
+}
+
 function parseFields(lines: string[]) {
   let summary = "";
   let minutes = 1;

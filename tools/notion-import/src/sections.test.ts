@@ -5,6 +5,7 @@ import {
   SECTION_UPSERT_ON_CONFLICT,
   buildSectionTagLinks,
   buildSectionUpsertRows,
+  planDevoSectionPrune,
 } from "./sections.js";
 
 const card = `
@@ -100,4 +101,19 @@ The refuge does not relocate when the headlines do.
   assert.deepEqual(devos[0].sections, []);
   assert.equal(devos[0].body_md.includes("relocate"), true);
   assert.equal(buildSectionUpsertRows("devo-1", devos[0].sections ?? []).length, 0);
+});
+
+test("Notion cards without sections do not delete devo_sections, and supplied sections prune stale positions", () => {
+  assert.deepEqual(planDevoSectionPrune(undefined), { deleteIssued: false });
+  assert.deepEqual(planDevoSectionPrune(null), { deleteIssued: false });
+  assert.deepEqual(planDevoSectionPrune([]), { deleteIssued: false });
+
+  const existing = [1, 2, 3, 4];
+  const supplied = planDevoSectionPrune([{ position: 1 }, { position: 3 }]);
+  assert.deepEqual(supplied, { deleteIssued: true, keep: [1, 3], notIn: "(1,3)" });
+  if (!supplied.deleteIssued) return;
+  assert.deepEqual(
+    existing.filter((position) => !supplied.keep.includes(position)),
+    [2, 4],
+  );
 });
