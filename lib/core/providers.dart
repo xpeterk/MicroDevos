@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +25,7 @@ import '../domain/models/bible_version.dart';
 import '../domain/models/devo.dart';
 import '../domain/models/devo_note.dart';
 import '../domain/models/devo_section.dart';
+import '../domain/models/generated_devo.dart';
 import '../domain/models/tag.dart';
 import '../domain/models/user_preferences.dart';
 import '../domain/repositories/repositories.dart';
@@ -384,7 +387,27 @@ final preferencesProvider =
 
 final devoByIdProvider = FutureProvider.family<Devo?, String>((ref, id) async {
   final repo = await ref.watch(devoRepositoryProvider.future);
-  return repo.devoById(id);
+  final devo = await repo.devoById(id);
+  if (devo != null) return devo;
+  final prefs = ref.watch(sharedPreferencesProvider);
+  final raw = prefs.getString('mine_devos');
+  if (raw != null && raw.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        for (final item in decoded) {
+          if (item is Map) {
+            final generated =
+                GeneratedDevo.fromJson(Map<String, dynamic>.from(item));
+            if (generated.id == id) {
+              return generated.toDevo();
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+  return null;
 });
 
 final notesRepositoryProvider = Provider<NotesRepository>((ref) {

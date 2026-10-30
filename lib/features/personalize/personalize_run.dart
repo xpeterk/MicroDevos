@@ -155,7 +155,6 @@ class PersonalizeResult extends ConsumerStatefulWidget {
 }
 
 class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
-  var _liked = false;
   final _expandedSections = <int>{};
 
   void _toggleSection(int position) {
@@ -172,6 +171,8 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
   Widget build(BuildContext context) {
     final devo = ref.watch(personalizeRunProvider).devo;
     if (devo == null) return const SizedBox.shrink();
+    final mineDevos = ref.watch(mineProvider).value ?? const [];
+    final isMineSaved = mineDevos.any((item) => item.id == devo.id);
     final fullDevo = devo.toDevo();
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -345,11 +346,23 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
               ),
               IconButton(
                 key: const Key('heart-generated'),
-                tooltip: _liked ? 'Liked' : 'Like',
-                onPressed: () => setState(() => _liked = !_liked),
+                tooltip: isMineSaved ? 'Saved' : 'Save',
+                onPressed: () async {
+                  if (isMineSaved) {
+                    await ref.read(mineProvider.notifier).remove(devo.id);
+                    if (context.mounted) {
+                      showFeedSnack(context, 'Removed from Saved');
+                    }
+                  } else {
+                    await ref.read(mineProvider.notifier).save(devo);
+                    if (context.mounted) {
+                      showFeedSnack(context, 'Saved on this phone');
+                    }
+                  }
+                },
                 icon: Icon(
-                  _liked ? Icons.favorite : Icons.favorite_border,
-                  color: _liked ? scheme.primary : scheme.onSurface,
+                  isMineSaved ? Icons.favorite : Icons.favorite_border,
+                  color: isMineSaved ? const Color(0xFFE53935) : scheme.onSurface,
                 ),
               ),
               IconButton(
@@ -572,12 +585,22 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
                     child: FilledButton.icon(
                       key: const Key('save-to-mine'),
                       onPressed: () async {
-                        await ref.read(mineProvider.notifier).save(devo);
-                        if (!context.mounted) return;
-                        showFeedSnack(context, 'Saved on this phone');
+                        if (isMineSaved) {
+                          await ref.read(mineProvider.notifier).remove(devo.id);
+                          if (!context.mounted) return;
+                          showFeedSnack(context, 'Removed from Saved');
+                        } else {
+                          await ref.read(mineProvider.notifier).save(devo);
+                          if (!context.mounted) return;
+                          showFeedSnack(context, 'Saved on this phone');
+                        }
                       },
-                      icon: const Icon(Icons.bookmark_border),
-                      label: const Text('Save'),
+                      icon: Icon(
+                        isMineSaved
+                            ? Icons.bookmark
+                            : Icons.bookmark_border,
+                      ),
+                      label: Text(isMineSaved ? 'Saved' : 'Save'),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: const StadiumBorder(),

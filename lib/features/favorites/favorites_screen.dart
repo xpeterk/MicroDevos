@@ -8,9 +8,44 @@ import '../../core/theme/app_theme.dart';
 import '../../domain/models/devo.dart';
 import '../../domain/models/devo_note.dart';
 import '../../domain/models/devo_section.dart';
+import '../../domain/models/generated_devo.dart';
 import '../../shared/widgets/reading_widgets.dart';
 import '../browse/banner.dart';
 import '../browse/browse_state.dart';
+import '../browse/feed_snack.dart';
+import '../personalize/personalize_state.dart';
+
+enum SavedItemKind { devo, mine, section }
+
+class SavedItem {
+  const SavedItem({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.subtitle,
+    required this.tag,
+    required this.verseRef,
+    required this.editionDate,
+    required this.colors,
+    required this.route,
+    required this.onUnsave,
+    this.rawTags = const [],
+    this.sectionId,
+  });
+
+  final String id;
+  final SavedItemKind kind;
+  final String title;
+  final String subtitle;
+  final String tag;
+  final String verseRef;
+  final DateTime editionDate;
+  final List<Color> colors;
+  final String route;
+  final Future<void> Function() onUnsave;
+  final List<String> rawTags;
+  final String? sectionId;
+}
 
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
@@ -27,8 +62,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   Widget build(BuildContext context) {
     final favorites = ref.watch(favoritesProvider);
     final notes = ref.watch(notesProvider);
+    final mine = ref.watch(mineProvider);
     final segment = ref.watch(savedSegmentProvider);
-    if (favorites.isLoading || notes.isLoading) {
+
+    if (favorites.isLoading || notes.isLoading || mine.isLoading) {
       return const LoadingView();
     }
     if (favorites.hasError) {
@@ -39,22 +76,118 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         onAction: () => ref.invalidate(favoritesProvider),
       );
     }
-    final ids = (favorites.value ?? const <String>{}).toList()..sort();
+
+    final favoriteIds = (favorites.value ?? const <String>{}).toList()..sort();
     final noteList = notes.value ?? const <DevoNote>[];
+    final mineList = mine.value ?? const <GeneratedDevo>[];
     final sectionFavs =
         ref.watch(sectionFavoritesProvider).value ?? const <SectionFavorite>[];
-    final likedDevos =
-        [for (final id in ids) ?ref.watch(devoByIdProvider(id)).asData?.value]
-          ..sort((a, b) {
-            final byDate = b.editionDate.compareTo(a.editionDate);
-            if (byDate != 0) return byDate;
-            return a.position.compareTo(b.position);
-          });
-    final shown = _tag == null
-        ? likedDevos
-        : likedDevos.where((devo) => devo.tags.contains(_tag)).toList();
-    final tagSlugs = <String>{for (final devo in likedDevos) ...devo.tags};
+
+    final mineIdSet = {for (final m in mineList) m.id};
+
+    final allItems = <SavedItem>[];
+
+    // 1. Personalized devotions
+    for (final m in mineList) {
+      final full = m.toDevo();
+      final colors =
+          bannerPalettes[m.styleKey.hashCode.abs() % bannerPalettes.length];
+      allItems.add(
+        SavedItem(
+          id: m.id,
+          kind: SavedItemKind.mine,
+          title: m.title,
+          subtitle: full.hook.isNotEmpty ? full.hook : m.promptLabel,
+          tag: 'FOR YOU',
+          verseRef: full.verseRef,
+          editionDate: full.editionDate,
+          colors: colors,
+          route: '/devo/${m.id}',
+          onUnsave: () => ref.read(mineProvider.notifier).remove(m.id),
+        ),
+      );
+    }
+
+    // 2. Regular favorited devotions (skip if already in mine)
+    for (final id in favoriteIds) {
+      if (mineIdSet.contains(id)) continue;
+      final devo = ref.watch(devoByIdProvider(id)).asData?.value;
+      if (devo == null) continue;
+      final colors = paletteFor(devo);
+      final primaryTag = devo.tags.isNotEmpty ? devo.tags.first.toUpperCase() : 'DEVOTION';
+      allItems.add(
+        SavedItem(
+          id: devo.id,
+          kind: SavedItemKind.devo,
+          title: devo.title,
+          subtitle: devo.hook,
+          tag: primaryTag,
+          verseRef: devo.verseRef,
+          editionDate: devo.editionDate,
+          colors: colors,
+          route: '/devo/${devo.id}',
+          onUnsave: () => ref.read(favoritesProvider.notifier).toggle(devo.id),
+          rawTags: devo.tags,
+        ),
+      );
+    }
+
+    // 3. Saved sections
+    for (final saved in sectionFavs) {
+      final parent =
+          ref.watch(devoByIdProvider(saved.devoId)).asData?.value;
+      final section = parent?.sections
+          .where((item) => item.id == saved.sectionId)
+          .firstOrNull;
+      final title = section?.title ?? 'Saved section';
+      final part = section == null
+          ? 'Part of ${parent?.title ?? 'a devo'}'
+          : 'Part ${section.position} of ${parent?.title ?? 'a devo'}';
+      final colors = parent != null
+          ? paletteFor(parent)
+          : const [Color(0xFFCDB98A), Color(0xFF9A8454)];
+
+      allItems.add(
+        SavedItem(
+          id: saved.sectionId,
+          kind: SavedItemKind.section,
+          title: title,
+          subtitle: part,
+          tag: 'SECTION',
+          verseRef: section?.verseRef ?? '',
+          editionDate: parent?.editionDate ?? DateTime.now(),
+          colors: colors,
+          route: '/devo/${saved.devoId}?section=${saved.sectionId}',
+          onUnsave: () => ref
+              .read(sectionFavoritesProvider.notifier)
+              .toggle(saved.devoId, saved.sectionId),
+          sectionId: saved.sectionId,
+        ),
+      );
+    }
+
+    // Sort items by date descending
+    allItems.sort((a, b) => b.editionDate.compareTo(a.editionDate));
+
+    // Tags for filtering
+    final hasForYou = allItems.any((item) => item.kind == SavedItemKind.mine);
+    final hasSections =
+        allItems.any((item) => item.kind == SavedItemKind.section);
+    final devoTags = <String>{
+      for (final item in allItems)
+        if (item.kind == SavedItemKind.devo) ...item.rawTags,
+    };
     final catalog = ref.watch(tagCatalogProvider).asData?.value;
+
+    final shown = _tag == null
+        ? allItems
+        : allItems.where((item) {
+            if (_tag == 'for-you') return item.kind == SavedItemKind.mine;
+            if (_tag == 'sections') return item.kind == SavedItemKind.section;
+            return item.rawTags.contains(_tag);
+          }).toList();
+
+    final totalCount = allItems.length;
 
     return CustomScrollView(
       slivers: [
@@ -68,9 +201,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 const SizedBox(height: 16),
                 if (segment == SavedSegment.liked) ...[
                   Text(
-                    ids.isEmpty
+                    totalCount == 0
                         ? 'Nothing saved yet'
-                        : '${ids.length} liked ${ids.length == 1 ? 'devo' : 'devos'}',
+                        : '$totalCount liked ${totalCount == 1 ? 'devo' : 'devos'}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontFamily: AppTheme.sans,
                       fontWeight: FontWeight.w600,
@@ -78,7 +211,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    ids.isEmpty
+                    totalCount == 0
                         ? 'Nothing saved yet. Double-tap or ♥ any devo to keep it here.'
                         : 'Double-tap or ♥ any devo to keep it here.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -125,7 +258,29 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                           selected: _tag == null,
                           onSelected: (_) => setState(() => _tag = null),
                         ),
-                        for (final slug in tagSlugs)
+                        if (hasForYou)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: FilterChip(
+                              key: const Key('saved-tag-for-you'),
+                              label: const Text('For You'),
+                              selected: _tag == 'for-you',
+                              onSelected: (_) =>
+                                  setState(() => _tag = _tag == 'for-you' ? null : 'for-you'),
+                            ),
+                          ),
+                        if (hasSections)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: FilterChip(
+                              key: const Key('saved-tag-sections'),
+                              label: const Text('Sections'),
+                              selected: _tag == 'sections',
+                              onSelected: (_) =>
+                                  setState(() => _tag = _tag == 'sections' ? null : 'sections'),
+                            ),
+                          ),
+                        for (final slug in devoTags)
                           Padding(
                             padding: const EdgeInsets.only(left: 8),
                             child: FilterChip(
@@ -134,7 +289,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                                 catalog?.tagBySlug(slug)?.label ?? slug,
                               ),
                               selected: _tag == slug,
-                              onSelected: (_) => setState(() => _tag = slug),
+                              onSelected: (_) =>
+                                  setState(() => _tag = _tag == slug ? null : slug),
                             ),
                           ),
                       ],
@@ -166,56 +322,49 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             ),
           ),
         ),
-        if (segment == SavedSegment.liked && sectionFavs.isNotEmpty)
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final saved = sectionFavs[index];
-                final parent = ref
-                    .watch(devoByIdProvider(saved.devoId))
-                    .asData
-                    ?.value;
-                final section = parent?.sections
-                    .where((item) => item.id == saved.sectionId)
-                    .firstOrNull;
-                return _SavedSectionRow(
-                  devo: parent,
-                  section: section,
-                  sectionId: saved.sectionId,
-                  devoId: saved.devoId,
-                );
-              }, childCount: sectionFavs.length),
-            ),
-          ),
         if (segment == SavedSegment.liked && shown.isEmpty)
-          const SliverToBoxAdapter(child: SizedBox(height: 24))
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              child: Center(
+                child: Text(
+                  totalCount == 0
+                      ? 'No devotions saved yet'
+                      : 'No saved items match this filter',
+                  style: TextStyle(
+                    fontFamily: AppTheme.sans,
+                    fontSize: 15,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          )
         else if (segment == SavedSegment.liked && _grid)
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 0.72,
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.82,
               ),
               delegate: SliverChildBuilderDelegate(
-                (context, index) => _LikedTile(devo: shown[index]),
+                (context, index) => _SavedGridCard(item: shown[index]),
                 childCount: shown.length,
               ),
             ),
           )
         else if (segment == SavedSegment.liked)
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final devo = shown[index];
-              return ListTile(
-                onTap: () => context.push('/devo/${devo.id}'),
-                title: Text(devo.title),
-                subtitle: Text(devo.hook, maxLines: 2),
-              );
-            }, childCount: shown.length),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => _SavedListRow(item: shown[index]),
+                childCount: shown.length,
+              ),
+            ),
           )
         else if (segment == SavedSegment.notes)
           SliverPadding(
@@ -321,57 +470,140 @@ class _SegmentButton extends StatelessWidget {
   }
 }
 
-class _LikedTile extends StatelessWidget {
-  const _LikedTile({required this.devo});
+class _SavedGridCard extends StatelessWidget {
+  const _SavedGridCard({required this.item});
 
-  final Devo devo;
+  final SavedItem item;
 
   @override
   Widget build(BuildContext context) {
-    final colors = paletteFor(devo);
-    return GestureDetector(
-      onTap: () => context.push('/devo/${devo.id}'),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+    Widget card = Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push(item.route),
         child: DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: colors,
+              colors: item.colors,
             ),
           ),
           child: Stack(
+            fit: StackFit.expand,
             children: [
-              const Positioned(
-                top: 8,
-                left: 8,
-                child: Icon(Icons.favorite, color: Colors.white, size: 14),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Icon(
-                  Icons.sell_outlined,
-                  color: Colors.white.withValues(alpha: 0.8),
-                  size: 14,
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.1),
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.8),
+                    ],
+                    stops: const [0.0, 0.45, 1.0],
+                  ),
                 ),
               ),
               Positioned(
-                left: 8,
-                right: 8,
-                bottom: 8,
-                child: Text(
-                  devo.title,
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: AppTheme.serif,
-                    color: Colors.white,
-                    fontSize: 13,
-                    height: 1.15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                top: 8,
+                left: 10,
+                right: 6,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        item.tag,
+                        style: const TextStyle(
+                          fontFamily: AppTheme.sans,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      key: Key('unsave-${item.id}'),
+                      tooltip: 'Remove from Saved',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: const Icon(
+                        Icons.favorite,
+                        color: Color(0xFFE53935),
+                        size: 20,
+                      ),
+                      onPressed: () async {
+                        await item.onUnsave();
+                        if (context.mounted) {
+                          showFeedSnack(context, 'Removed from Saved');
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.serif,
+                        color: Colors.white,
+                        fontSize: 16,
+                        height: 1.15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.subtitle,
+                      key: item.sectionId != null
+                          ? Key('saved-section-parent-${item.sectionId}')
+                          : null,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTheme.sans,
+                        color: Colors.white.withValues(alpha: 0.88),
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (item.verseRef.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        item.verseRef,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppTheme.sans,
+                          color: Colors.white.withValues(alpha: 0.72),
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -379,6 +611,155 @@ class _LikedTile extends StatelessWidget {
         ),
       ),
     );
+
+    if (item.sectionId != null) {
+      return KeyedSubtree(
+        key: Key('saved-section-${item.sectionId}'),
+        child: card,
+      );
+    }
+    return card;
+  }
+}
+
+class _SavedListRow extends StatelessWidget {
+  const _SavedListRow({required this.item});
+
+  final SavedItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final IconData leadingIcon;
+    switch (item.kind) {
+      case SavedItemKind.mine:
+        leadingIcon = Icons.auto_awesome;
+        break;
+      case SavedItemKind.section:
+        leadingIcon = Icons.bookmark;
+        break;
+      case SavedItemKind.devo:
+        leadingIcon = Icons.menu_book;
+        break;
+    }
+
+    Widget row = Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.nightRaised : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? Colors.white12 : Colors.black12,
+          width: 0.8,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => context.push(item.route),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: item.colors,
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        leadingIcon,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        item.tag,
+                        style: TextStyle(
+                          fontFamily: AppTheme.sans,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                          color: scheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppTheme.serif,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.subtitle,
+                        key: item.sectionId != null
+                            ? Key('saved-section-parent-${item.sectionId}')
+                            : null,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: AppTheme.sans,
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  key: Key('unsave-list-${item.id}'),
+                  tooltip: 'Remove from Saved',
+                  icon: const Icon(
+                    Icons.favorite,
+                    color: Color(0xFFE53935),
+                    size: 22,
+                  ),
+                  onPressed: () async {
+                    await item.onUnsave();
+                    if (context.mounted) {
+                      showFeedSnack(context, 'Removed from Saved');
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (item.sectionId != null) {
+      return KeyedSubtree(
+        key: Key('saved-section-${item.sectionId}'),
+        child: row,
+      );
+    }
+    return row;
   }
 }
 
@@ -516,59 +897,6 @@ String _sectionNoteLabel(Devo? devo, DevoNote note) {
     return 'Part of ${devo?.title ?? 'this devo'}';
   }
   return 'Part ${section.position} of ${devo?.title ?? 'this devo'}';
-}
-
-class _SavedSectionRow extends StatelessWidget {
-  const _SavedSectionRow({
-    required this.devo,
-    required this.section,
-    required this.sectionId,
-    required this.devoId,
-  });
-
-  final Devo? devo;
-  final DevoSection? section;
-  final String sectionId;
-  final String devoId;
-
-  @override
-  Widget build(BuildContext context) {
-    final title = section?.title ?? 'Saved section';
-    final part = section == null
-        ? 'Part of ${devo?.title ?? 'a devo'}'
-        : 'Part ${section!.position} of ${devo?.title ?? 'a devo'}';
-    return ListTile(
-      key: Key('saved-section-$sectionId'),
-      contentPadding: const EdgeInsets.symmetric(vertical: 4),
-      onTap: () => context.push('/devo/$devoId?section=$sectionId'),
-      leading: Container(
-        width: 56,
-        height: 40,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF2C94C),
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontFamily: AppTheme.sans,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      subtitle: Text(
-        part,
-        key: Key('saved-section-parent-$sectionId'),
-        style: const TextStyle(fontFamily: AppTheme.sans, fontSize: 13),
-      ),
-      trailing: section == null || section!.verseRef.isEmpty
-          ? null
-          : Text(
-              section!.verseRef,
-              style: const TextStyle(fontFamily: AppTheme.sans, fontSize: 12),
-            ),
-    );
-  }
 }
 
 List<List<DevoNote>> _groups(List<DevoNote> notes) {

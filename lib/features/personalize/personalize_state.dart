@@ -309,6 +309,18 @@ class MineController extends AsyncNotifier<List<GeneratedDevo>> {
         );
   }
 
+  Future<void> remove(String id) async {
+    final current = [...state.value ?? await future];
+    final next = current.where((item) => item.id != id).toList();
+    state = AsyncData(next);
+    await ref
+        .read(sharedPreferencesProvider)
+        .setString(
+          _key,
+          jsonEncode(next.map((item) => item.toJson()).toList()),
+        );
+  }
+
   Future<void> replaceAll(List<GeneratedDevo> devos) async {
     state = AsyncData(devos);
     await ref

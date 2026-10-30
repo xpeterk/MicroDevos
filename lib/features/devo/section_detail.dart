@@ -8,6 +8,7 @@ import '../../domain/models/devo.dart';
 import '../../domain/models/devo_section.dart';
 import '../../shared/widgets/reading_widgets.dart';
 import '../browse/browse_state.dart';
+import '../browse/feed_snack.dart';
 import '../browse/note_pane.dart';
 import '../browse/style_banner.dart';
 import 'one_minute_section.dart';
@@ -109,6 +110,9 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
     final openDraft = draft != null && draft.devoId == devo.id ? draft : null;
     final noting = openDraft != null;
     final scheme = Theme.of(context).colorScheme;
+    final wholeFavorites =
+        ref.watch(favoritesProvider).value ?? const <String>{};
+    final isWholeLiked = wholeFavorites.contains(devo.id);
     final liked =
         ref.watch(sectionFavoritesProvider).value ?? const <SectionFavorite>[];
     final notes = ref.watch(notesProvider).value ?? const [];
@@ -143,15 +147,46 @@ class _SectionDetailState extends ConsumerState<SectionDetail> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-              child: Text(
-                '${sections.length} ${sections.length == 1 ? 'section' : 'sections'} · $minutes min · ${devo.verseRef}',
-                key: const Key('section-meta'),
-                style: TextStyle(
-                  fontFamily: AppTheme.sans,
-                  fontSize: 14,
-                  color: scheme.onSurfaceVariant,
-                ),
+              padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${sections.length} ${sections.length == 1 ? 'section' : 'sections'} · $minutes min · ${devo.verseRef}',
+                      key: const Key('section-meta'),
+                      style: TextStyle(
+                        fontFamily: AppTheme.sans,
+                        fontSize: 14,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: Key('devo-favorite-${devo.id}'),
+                    tooltip: isWholeLiked
+                        ? 'Remove from Saved'
+                        : 'Save full devotional',
+                    icon: Icon(
+                      isWholeLiked ? Icons.favorite : Icons.favorite_border,
+                      color: isWholeLiked
+                          ? scheme.primary
+                          : scheme.onSurfaceVariant,
+                    ),
+                    onPressed: () async {
+                      await ref
+                          .read(favoritesProvider.notifier)
+                          .toggle(devo.id);
+                      if (context.mounted) {
+                        showFeedSnack(
+                          context,
+                          isWholeLiked
+                              ? 'Removed devotional from Saved'
+                              : 'Saved full devotional',
+                        );
+                      }
+                    },
+                  ),
+                ],
               ),
             ),
             SizedBox(key: _listKey),

@@ -11,6 +11,7 @@ import '../../domain/models/user_preferences.dart';
 import '../../shared/widgets/reading_widgets.dart';
 import '../browse/banner.dart';
 import '../browse/browse_state.dart';
+import '../browse/feed_snack.dart';
 import '../browse/note_pane.dart';
 import '../browse/style_banner.dart';
 import 'one_minute_section.dart';
@@ -88,6 +89,9 @@ class _Detail extends ConsumerWidget {
     final preferences =
         ref.watch(preferencesProvider).value ?? UserPreferences.initial();
     final catalog = ref.watch(verseCatalogProvider);
+    final wholeFavorites =
+        ref.watch(favoritesProvider).value ?? const <String>{};
+    final isWholeLiked = wholeFavorites.contains(devo.id);
     final draft = ref.watch(noteDraftProvider);
     final selection = ref.watch(passageSelectionProvider);
     final openDraft = draft != null && draft.devoId == devo.id ? draft : null;
@@ -136,12 +140,44 @@ class _Detail extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      DateFormat('EEEE, MMMM d').format(devo.editionDate),
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontFamily: AppTheme.sans,
-                        color: scheme.primary,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          DateFormat('EEEE, MMMM d').format(devo.editionDate),
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontFamily: AppTheme.sans,
+                            color: scheme.primary,
+                          ),
+                        ),
+                        IconButton(
+                          key: Key('devo-favorite-${devo.id}'),
+                          tooltip: isWholeLiked
+                              ? 'Remove from Saved'
+                              : 'Save full devotional',
+                          icon: Icon(
+                            isWholeLiked
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: isWholeLiked
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
+                          ),
+                          onPressed: () async {
+                            await ref
+                                .read(favoritesProvider.notifier)
+                                .toggle(devo.id);
+                            if (context.mounted) {
+                              showFeedSnack(
+                                context,
+                                isWholeLiked
+                                    ? 'Removed devotional from Saved'
+                                    : 'Saved full devotional',
+                              );
+                            }
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     catalog.when(

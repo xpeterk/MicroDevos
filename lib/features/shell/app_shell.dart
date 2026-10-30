@@ -23,7 +23,7 @@ class AppShell extends ConsumerWidget {
     final showHint = ref.watch(showCreateHintProvider);
     final writing = run.writing || run.blockedReason != null;
     final showingResult = run.devo != null && !run.writing;
-    final showCreate = shell.currentIndex != 2 && !writing && !showingResult;
+    final showCreate = shell.currentIndex == 0 && !writing && !showingResult;
     final config = ref.watch(appConfigProvider);
     final client = ref.watch(supabaseClientProvider);
     final isUsingSampleData = !(config.useSupabase && client != null);
@@ -38,7 +38,7 @@ class AppShell extends ConsumerWidget {
         title: Text(
           showingResult
               ? 'Your devo'
-              : shell.currentIndex == 2
+              : shell.currentIndex == 1
               ? 'Saved'
               : 'Micro Devos',
           style: TextStyle(
@@ -130,7 +130,7 @@ class AppShell extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: showingResult ? 1 : shell.currentIndex,
+        selectedIndex: showingResult ? 0 : shell.currentIndex,
         onDestinationSelected: (index) {
           if (showingResult) {
             ref.read(personalizeRunProvider.notifier).dismiss();
@@ -142,11 +142,6 @@ class AppShell extends ConsumerWidget {
             icon: Icon(Icons.wb_sunny_outlined),
             selectedIcon: Icon(Icons.wb_sunny),
             label: 'Feed',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome_outlined),
-            selectedIcon: Icon(Icons.auto_awesome),
-            label: 'For You',
           ),
           NavigationDestination(
             icon: Icon(Icons.favorite_border),

@@ -166,9 +166,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1000));
     await tester.pump();
+    await tester.scrollUntilVisible(find.byKey(const Key('help-note')), 80);
     expect(find.byKey(const Key('help-note')), findsOneWidget);
     expect(find.textContaining('call or text 988 any time.'), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('help-note')));
     await tester.pump();
     await _capture(tester, 'build-PZ6-help');
 

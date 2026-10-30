@@ -31,20 +31,17 @@ GoRouter buildRouter() {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/for-you',
-                builder: (context, state) => const ForYouScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                 path: '/favorites',
                 builder: (context, state) => const FavoritesScreen(),
               ),
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/for-you',
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const ForYouScreen(),
       ),
       GoRoute(
         path: '/story/:id',
