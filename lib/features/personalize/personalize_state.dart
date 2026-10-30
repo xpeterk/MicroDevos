@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../data/supabase/generate_devo_client.dart';
 import '../../domain/models/generated_devo.dart';
+import '../../domain/personalize/gemini_generation_provider.dart';
 import '../../domain/personalize/personalize_engine.dart';
 
 enum PersonalizeSource { topic, verse }
@@ -181,9 +182,13 @@ final personalizePaceProvider = Provider<Duration>(
 );
 
 final personalizeEngineProvider = Provider<PersonalizeEngine>((ref) {
+  final geminiKey = ref.watch(appConfigProvider).geminiApiKey;
   return PersonalizeEngine(
     config: const GenerationCapConfig(),
     clock: () => ref.read(clockProvider)(),
+    provider: geminiKey.isNotEmpty
+        ? GeminiGenerationProvider(apiKey: geminiKey)
+        : null,
   );
 });
 
@@ -193,9 +198,18 @@ class PersonalizeGateway {
   final PersonalizeEngine engine;
   final Future<Object> Function(GenerateRequest request)? remote;
 
-  Future<Object> generate(GenerateRequest request) {
+  Future<Object> generate(GenerateRequest request) async {
     final call = remote;
-    if (call != null) return call(request);
+    if (call != null) {
+      try {
+        final res = await call(request);
+        if (res is! GenerateBlocked && res is! GenerateRejected) {
+          return res;
+        }
+      } catch (_) {
+        // Fall through to local engine
+      }
+    }
     return engine.generate(request);
   }
 }

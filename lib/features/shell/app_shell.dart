@@ -1,7 +1,11 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/reading_widgets.dart';
 import '../personalize/personalize_run.dart';
@@ -20,6 +24,10 @@ class AppShell extends ConsumerWidget {
     final writing = run.writing || run.blockedReason != null;
     final showingResult = run.devo != null && !run.writing;
     final showCreate = shell.currentIndex != 2 && !writing && !showingResult;
+    final config = ref.watch(appConfigProvider);
+    final client = ref.watch(supabaseClientProvider);
+    final isUsingSampleData = !(config.useSupabase && client != null);
+    final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
 
     if (writing) return const PersonalizeWritingScreen();
 
@@ -86,6 +94,37 @@ class AppShell extends ConsumerWidget {
                 right: 16,
                 left: 56,
                 child: CreateHint(),
+              ),
+            if (kDebugMode && !isTest && isUsingSampleData)
+              Positioned(
+                bottom: 8,
+                left: 12,
+                child: IgnorePointer(
+                  child: Container(
+                    key: const Key('sample-data-badge'),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD97706),
+                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'Sample data',
+                      style: TextStyle(
+                        fontFamily: AppTheme.sans,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
               ),
           ],
         ),

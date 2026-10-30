@@ -6,8 +6,11 @@ import '../../core/theme/app_theme.dart';
 import '../../domain/models/generated_devo.dart';
 import '../../domain/personalize/personalize_engine.dart';
 import '../../domain/personalize/style_catalog.dart';
+import '../../shared/widgets/reading_widgets.dart';
 import '../browse/banner.dart';
 import '../browse/feed_snack.dart';
+import '../devo/one_minute_section.dart';
+import '../devo/section_detail.dart';
 import 'personalize_state.dart';
 
 class PersonalizeWritingScreen extends ConsumerWidget {
@@ -153,20 +156,51 @@ class PersonalizeResult extends ConsumerStatefulWidget {
 
 class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
   var _liked = false;
-  var _expanded = false;
+  final _expandedSections = <int>{};
+
+  void _toggleSection(int position) {
+    setState(() {
+      if (_expandedSections.contains(position)) {
+        _expandedSections.remove(position);
+      } else {
+        _expandedSections.add(position);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final devo = ref.watch(personalizeRunProvider).devo;
     if (devo == null) return const SizedBox.shrink();
+    final fullDevo = devo.toDevo();
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final banner = devo.isClassic
         ? 'Personalized · Adapted from ${devo.styleLabel} · public domain'
         : 'Personalized · ${devo.styleLabel} style · “${devo.promptLabel}”';
 
+    final sections = fullDevo.sections;
+    final minutes = sections.fold<int>(0, (sum, s) => sum + s.minutes);
+
+    final cardBg = isDark ? const Color(0xFF2C2926) : const Color(0xFFFFFFFF);
+    final cardBorder = isDark ? const Color(0xFF4A453E) : const Color(0xFFB9AE97);
+    final cardShadow = isDark
+        ? const BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.6),
+            offset: Offset(0, 2),
+            blurRadius: 8,
+          )
+        : const BoxShadow(
+            color: Color.fromRGBO(70, 55, 25, 0.18),
+            offset: Offset(0, 2),
+            blurRadius: 8,
+          );
+    final titleColor = isDark ? const Color(0xFFF6F0E2) : const Color(0xFF1F1B16);
+    final chevronColor = isDark ? const Color(0xFFC4BBA8) : const Color(0xFF6B5F4B);
+
     return ListView(
       key: const Key('personalize-result'),
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 24),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
@@ -237,58 +271,78 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
             ),
           ),
         ),
-        SizedBox(
-          height: 112,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFC5A9C4), Color(0xFF8E6F8C)],
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              height: 112,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: bannerPalettes[
+                          minePaletteOrder[
+                            devo.styleKey.hashCode % minePaletteOrder.length
+                          ]
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const Positioned(right: -20, top: 10, child: _Bubble(size: 120)),
-              const Positioned(
-                left: -30,
-                bottom: -10,
-                child: _Bubble(size: 140),
-              ),
-              Positioned(
-                right: 24,
-                top: 28,
-                child: Icon(
-                  Icons.sell_outlined,
-                  size: 64,
-                  color: Colors.white.withValues(alpha: 0.28),
-                ),
-              ),
-              const Positioned(top: 12, right: 12, child: _ImagePill()),
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 16,
-                child: Text(
-                  devo.title,
-                  style: const TextStyle(
-                    fontFamily: AppTheme.serif,
-                    fontSize: 26,
-                    height: 1.05,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                  const Positioned(right: -20, top: 10, child: _Bubble(size: 120)),
+                  const Positioned(
+                    left: -30,
+                    bottom: -10,
+                    child: _Bubble(size: 140),
                   ),
-                ),
+                  Positioned(
+                    right: 24,
+                    top: 28,
+                    child: Icon(
+                      Icons.sell_outlined,
+                      size: 64,
+                      color: Colors.white.withValues(alpha: 0.28),
+                    ),
+                  ),
+                  const Positioned(top: 12, right: 12, child: _ImagePill()),
+                  Positioned(
+                    left: 20,
+                    right: 20,
+                    bottom: 16,
+                    child: Text(
+                      devo.title,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.serif,
+                        fontSize: 26,
+                        height: 1.05,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+          padding: const EdgeInsets.fromLTRB(20, 10, 16, 0),
           child: Row(
             children: [
+              Expanded(
+                child: Text(
+                  '${sections.length} ${sections.length == 1 ? 'section' : 'sections'} · $minutes min · ${fullDevo.verseRef}',
+                  style: TextStyle(
+                    fontFamily: AppTheme.sans,
+                    fontSize: 14,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
               IconButton(
                 key: const Key('heart-generated'),
                 tooltip: _liked ? 'Liked' : 'Like',
@@ -316,118 +370,202 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                devo.hook,
-                style: Theme.of(context).textTheme.bodyLarge
-                    ?.copyWith(fontSize: 16, height: 1.35),
+        OneMinuteSection(devo: fullDevo),
+        if (fullDevo.hook.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+            child: Text(
+              fullDevo.hook,
+              style: TextStyle(
+                fontFamily: AppTheme.serif,
+                fontSize: 17,
+                height: 1.35,
+                color: AppColors.summaryInk(Theme.of(context).brightness),
               ),
-              const SizedBox(height: 8),
-              const _DashDivider(),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.timer_outlined, size: 16, color: scheme.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    '5-SECOND DEVO',
-                    style: TextStyle(
-                      fontFamily: AppTheme.sans,
-                      fontSize: 12,
-                      letterSpacing: 0.8,
-                      fontWeight: FontWeight.w700,
-                      color: scheme.primary,
-                    ),
-                  ),
-                ],
+            ),
+          ),
+        const SizedBox(height: 8),
+        for (var index = 0; index < sections.length; index++) ...[
+          if (index > 0)
+            Center(
+              child: Container(
+                width: 1.5,
+                height: 14,
+                color: const Color(0xFFB9AE97).withValues(alpha: 0.4),
               ),
-              const SizedBox(height: 8),
-              Text(
-                devo.takeaway,
-                style: const TextStyle(
-                  fontFamily: AppTheme.serif,
-                  fontSize: 18,
-                  height: 1.25,
-                  fontWeight: FontWeight.w600,
-                ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: cardBorder, width: 1),
+                boxShadow: [cardShadow],
               ),
-              if (devo.helpNote != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  devo.helpNote!,
-                  key: const Key('help-note'),
-                  style: TextStyle(
-                    fontFamily: AppTheme.sans,
-                    fontSize: 13,
-                    height: 1.35,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3E6C4),
-                  borderRadius: BorderRadius.circular(14),
-                ),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+                clipBehavior: Clip.antiAlias,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'VERSE',
-                      style: TextStyle(
-                        fontFamily: AppTheme.sans,
-                        fontSize: 11,
-                        letterSpacing: 0.8,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.chipInk,
+                    InkWell(
+                      key: Key('section-bullet-${sections[index].id}'),
+                      onTap: () => _toggleSection(sections[index].position),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    plainSectionTitle(sections[index].title),
+                                    style: TextStyle(
+                                      fontFamily: AppTheme.sans,
+                                      fontSize: 15,
+                                      height: 1.35,
+                                      fontWeight: FontWeight.w600,
+                                      color: titleColor,
+                                    ),
+                                  ),
+                                  if (sections[index].summary.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      sections[index].summary,
+                                      style: TextStyle(
+                                        fontFamily: AppTheme.sans,
+                                        fontSize: 15,
+                                        height: 1.35,
+                                        color: AppColors.summaryInk(
+                                          isDark ? Brightness.dark : Brightness.light,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              _expandedSections.contains(sections[index].position)
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              size: 18,
+                              color: chevronColor,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      devo.verseText,
-                      style: const TextStyle(
-                        fontFamily: AppTheme.serif,
-                        fontSize: 15,
-                        fontStyle: FontStyle.italic,
-                        height: 1.3,
-                        color: AppColors.body,
+                    if (_expandedSections.contains(sections[index].position))
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            DevoBody(markdown: sections[index].body),
+                            if (sections[index].verseText.isNotEmpty ||
+                                sections[index].verseRef.isNotEmpty)
+                              Container(
+                                key: Key('section-verse-box-${sections[index].id}'),
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(top: 16),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF262320)
+                                      : const Color(0xFFF6EFDF),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? const Color(0xFF4A453E)
+                                        : const Color(0xFFE8DDC4),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (sections[index].verseText.isNotEmpty)
+                                      Text(
+                                        sections[index].verseText,
+                                        style: TextStyle(
+                                          fontFamily: AppTheme.serif,
+                                          fontStyle: FontStyle.italic,
+                                          fontSize: 16,
+                                          height: 1.45,
+                                          color: isDark
+                                              ? const Color(0xFFE8E2D5)
+                                              : const Color(0xFF2C241E),
+                                        ),
+                                      ),
+                                    if (sections[index].verseText.isNotEmpty &&
+                                        sections[index].verseRef.isNotEmpty)
+                                      const SizedBox(height: 10),
+                                    if (sections[index].verseRef.isNotEmpty)
+                                      Text(
+                                        sections[index].verseRef.startsWith('—') ||
+                                                sections[index].verseRef.startsWith('\u2014')
+                                            ? sections[index].verseRef
+                                            : '— ${sections[index].verseRef}',
+                                        key: Key('section-ref-${sections[index].id}'),
+                                        style: TextStyle(
+                                          fontFamily: AppTheme.sans,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark
+                                              ? const Color(0xFFD4B36A)
+                                              : const Color(0xFF8A6A2F),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${devo.verseRef} KJV',
-                      style: const TextStyle(
-                        fontFamily: AppTheme.sans,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.verseRef,
-                      ),
-                    ),
                   ],
                 ),
               ),
-              TextButton(
-                key: const Key('read-full-generated'),
-                onPressed: () => setState(() => _expanded = !_expanded),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_expanded ? 'Show less' : 'Read the full devo'),
-                    Icon(_expanded ? Icons.expand_less : Icons.expand_more),
-                  ],
-                ),
+            ),
+          ),
+        ],
+        if (fullDevo.prayer.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+            child: Text(
+              devoPrayerLine(fullDevo.prayer) ?? fullDevo.prayer,
+              key: const Key('devo-prayer'),
+              style: TextStyle(
+                fontFamily: AppTheme.serif,
+                fontSize: 17,
+                height: 1.4,
+                color: scheme.onSurface,
               ),
-              if (_expanded)
-                for (final section in devo.sections) ...[
-                  Text(section, style: Theme.of(context).textTheme.bodyLarge),
-                  const SizedBox(height: 12),
-                ],
+            ),
+          ),
+        if (devo.helpNote != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Text(
+              devo.helpNote!,
+              key: const Key('help-note'),
+              style: TextStyle(
+                fontFamily: AppTheme.sans,
+                fontSize: 13,
+                height: 1.35,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+          child: Column(
+            children: [
               Row(
                 children: [
                   Expanded(
@@ -462,6 +600,12 @@ class _PersonalizeResultState extends ConsumerState<PersonalizeResult> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () =>
+                    ref.read(personalizeRunProvider.notifier).dismiss(),
+                child: const Text('Back to feed'),
               ),
             ],
           ),
@@ -660,31 +804,6 @@ class _ImagePill extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
       ),
-    );
-  }
-}
-
-class _DashDivider extends StatelessWidget {
-  const _DashDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const dash = 6.0;
-        final count = (constraints.maxWidth / (dash * 2)).floor();
-        return Row(
-          children: [
-            for (var i = 0; i < count; i++)
-              Container(
-                width: dash,
-                height: 1,
-                margin: const EdgeInsets.only(right: dash),
-                color: AppColors.paperDeep,
-              ),
-          ],
-        );
-      },
     );
   }
 }

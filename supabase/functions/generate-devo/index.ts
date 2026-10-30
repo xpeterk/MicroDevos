@@ -59,10 +59,16 @@ function contentOf(draft: GenerationDraft) {
     title: draft.title,
     hook: draft.hook,
     sections: draft.sections,
+    structured_sections: draft.structured_sections ?? [],
     takeaway: draft.takeaway,
     verse_text: draft.verse_text,
     verse_ref: draft.verse_ref,
     scriptures: draft.scriptures,
+    one_minute_text: draft.one_minute_text ?? null,
+    one_minute_verse_ref: draft.one_minute_verse_ref ?? null,
+    one_minute_verse_text: draft.one_minute_verse_text ?? null,
+    one_minute_today: draft.one_minute_today ?? null,
+    prayer: draft.prayer ?? null,
     help_note: draft.help_note ?? null,
   };
 }
@@ -202,7 +208,7 @@ Deno.serve(async (req) => {
   const safety = new ScriptureAnchorChecker();
   let draft: GenerationDraft;
   try {
-    draft = safety.review(provider.generate(inputWithNotes), inputWithNotes);
+    draft = safety.review(await provider.generate(inputWithNotes), inputWithNotes);
   } catch (error) {
     if (error instanceof ScriptureAnchorException) {
       return json({ error: error.message }, 422);

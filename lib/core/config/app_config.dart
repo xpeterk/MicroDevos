@@ -7,6 +7,7 @@ class AppConfig {
     required this.esvApiKey,
     required this.apiBibleKey,
     required this.apiBibleIds,
+    this.geminiApiKey = '',
   });
 
   /// No keys. Repositories stay on the bundled sample catalog.
@@ -15,6 +16,7 @@ class AppConfig {
       supabaseAnonKey = '',
       esvApiKey = '',
       apiBibleKey = '',
+      geminiApiKey = '',
       apiBibleIds = const {};
 
   factory AppConfig.fromEnvironment() {
@@ -23,6 +25,7 @@ class AppConfig {
       supabaseAnonKey: const String.fromEnvironment('SUPABASE_ANON_KEY').trim(),
       esvApiKey: const String.fromEnvironment('ESV_API_KEY').trim(),
       apiBibleKey: const String.fromEnvironment('API_BIBLE_KEY').trim(),
+      geminiApiKey: const String.fromEnvironment('GEMINI_API_KEY').trim(),
       apiBibleIds: {
         BibleVersion.niv: const String.fromEnvironment('API_BIBLE_ID_NIV'),
         BibleVersion.nlt: const String.fromEnvironment('API_BIBLE_ID_NLT'),
@@ -37,6 +40,7 @@ class AppConfig {
   final String supabaseAnonKey;
   final String esvApiKey;
   final String apiBibleKey;
+  final String geminiApiKey;
   final Map<BibleVersion, String> apiBibleIds;
 
   /// True only for an http(s) URL with a host and a non-empty anon key.
